@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiPlus, FiTrash2, FiStar, FiImage, FiDollarSign } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiStar, FiImage, FiDollarSign, FiUpload } from 'react-icons/fi';
 import { Modal, Button, Spinner, Form, Row, Col, Alert, Badge } from 'react-bootstrap';
 
 const AddProduct = ({ show, onHide }) => {
@@ -8,6 +8,7 @@ const AddProduct = ({ show, onHide }) => {
     description: '',
     brand: '',
     category: '',
+    mainImage: null,
     isFeatured: false,
     variants: [{
       color: '',
@@ -23,6 +24,10 @@ const AddProduct = ({ show, onHide }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewProduct({ ...newProduct, [name]: value });
+  };
+
+  const handleFileChange = (e) => {
+    setNewProduct({ ...newProduct, mainImage: e.target.files[0] });
   };
 
   const handleToggleFeatured = () => {
@@ -54,6 +59,12 @@ const AddProduct = ({ show, onHide }) => {
         }
       ]
     });
+  };
+
+  const addSize = (variantIndex) => {
+    const updatedVariants = [...newProduct.variants];
+    updatedVariants[variantIndex].sizes.push({ size: '', stock: 0, price: 0 });
+    setNewProduct({ ...newProduct, variants: updatedVariants });
   };
 
   const removeVariant = (index) => {
@@ -93,6 +104,7 @@ const AddProduct = ({ show, onHide }) => {
       description: '',
       brand: '',
       category: '',
+      mainImage: null,
       isFeatured: false,
       variants: [{
         color: '',
@@ -187,6 +199,43 @@ const AddProduct = ({ show, onHide }) => {
                     <FiStar size={14} className="me-1" /> Featured
                   </Badge>
                 )}
+              </Col>
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label className="fw-medium text-muted mb-2">Main Product Image *</Form.Label>
+                  <div className="border-2 rounded p-3 bg-light">
+                    <Form.Control 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleFileChange} 
+                      required 
+                      className="d-none" 
+                      id="mainImageUpload"
+                    />
+                    <Form.Label 
+                      htmlFor="mainImageUpload" 
+                      className="d-flex flex-column align-items-center justify-content-center cursor-pointer p-4"
+                    >
+                      {newProduct.mainImage ? (
+                        <>
+                          <img 
+                            src={URL.createObjectURL(newProduct.mainImage)} 
+                            alt="Preview" 
+                            className="img-fluid mb-2" 
+                            style={{ maxHeight: '150px' }}
+                          />
+                          <span className="text-primary fw-medium">Change Image</span>
+                        </>
+                      ) : (
+                        <>
+                          <FiUpload size={24} className="mb-2 text-muted" />
+                          <span className="text-muted">Click to upload product image</span>
+                          <small className="text-danger mt-1">* Required</small>
+                        </>
+                      )}
+                    </Form.Label>
+                  </div>
+                </Form.Group>
               </Col>
               <Col md={12}>
                 <Form.Group>
@@ -288,6 +337,14 @@ const AddProduct = ({ show, onHide }) => {
                       <FiDollarSign className="me-2" size={16} />
                       Sizes & Pricing
                     </h6>
+                    <Button 
+                      variant="outline-primary" 
+                      size="sm" 
+                      onClick={() => addSize(index)}
+                      className="d-flex align-items-center gap-1"
+                    >
+                      <FiPlus size={14} /> Add Size
+                    </Button>
                   </div>
                   
                   {variant.sizes.map((size, sIdx) => (
