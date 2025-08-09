@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { FiPlus, FiTrash2, FiStar, FiImage, FiDollarSign } from 'react-icons/fi';
 import { Modal, Button, Spinner, Form, Row, Col, Alert, Badge } from 'react-bootstrap';
+import axios from 'axios';
 
 const AddProduct = ({ show, onHide }) => {
+
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
     brand: '',
     category: '',
     isFeatured: false,
+    image: '',
     variants: [{
       color: '',
       colorCode: '#6c757d',
-      images: [],
+      // images: [],
       sizes: [{ size: '', stock: 0, price: 0 }]
     }]
   });
@@ -49,7 +52,7 @@ const AddProduct = ({ show, onHide }) => {
         {
           color: '',
           colorCode: '#6c757d',
-          images: [],
+          // images: [],
           sizes: [{ size: '', stock: 0, price: 0 }]
         }
       ]
@@ -68,24 +71,46 @@ const AddProduct = ({ show, onHide }) => {
     setNewProduct({ ...newProduct, variants: updatedVariants });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setIsSubmitting(true);
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSuccessMessage(`Product "${newProduct.name}" saved successfully!`);
-      setTimeout(() => {
-        setSuccessMessage('');
-        onHide();
-        resetForm();
-      }, 2000);
-    } catch (error) {
-      console.error('Error saving product:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  //   try {
+  //     await new Promise(resolve => setTimeout(resolve, 1000));
+  //     setSuccessMessage(`Product "${newProduct.name}" saved successfully!`);
+  //     setTimeout(() => {
+  //       setSuccessMessage('');
+  //       onHide();
+  //       resetForm();
+  //     }, 2000);
+  //   } catch (error) {
+  //     console.error('Error saving product:', error);
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  try {
+    const response = await axios.post('http://localhost:3001/api/products', newProduct);
+
+    console.log('Product added:', response.data);
+    setSuccessMessage(`Product "${response.data.name}" saved successfully!`);
+
+    setTimeout(() => {
+      setSuccessMessage('');
+      onHide();
+      resetForm();
+    }, 2000);
+  } catch (error) {
+    console.error('Error saving product:', error);
+    alert('Error adding product. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const resetForm = () => {
     setNewProduct({
@@ -97,7 +122,7 @@ const AddProduct = ({ show, onHide }) => {
       variants: [{
         color: '',
         colorCode: '#6c757d',
-        images: [],
+        // images: [],
         sizes: [{ size: '', stock: 0, price: 0 }]
       }]
     });
@@ -220,7 +245,7 @@ const AddProduct = ({ show, onHide }) => {
                 onClick={addVariant}
                 className="d-flex align-items-center gap-1"
               >
-                <FiPlus size={16} /> Add Variant
+                <FiPlus size={16} /> Add More Variant
               </Button>
             </div>
 

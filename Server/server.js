@@ -6,6 +6,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const productRoutes = require('./Routes/ProductRoute');
+app.use('/api/products', productRoutes);
+
 mongoose.connect("mongodb://127.0.0.1:27017/Babhub") 
 // "mongodb://localhost:27017/"
   .then(() => console.log('Connected to the database.'))
