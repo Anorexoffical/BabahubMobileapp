@@ -13,6 +13,7 @@ import {
   FiFilter
 } from 'react-icons/fi';
 import { Table, Pagination, Badge, Form, Button, Card, Alert } from 'react-bootstrap';
+import Topbar from './Topbar'; // Add Topbar import
 import '../Style/Orders.css';
 
 const Orders = () => {
@@ -173,298 +174,305 @@ const Orders = () => {
   };
 
   return (
-    <div className="orders-container">
-      {successMessage && (
-        <Alert variant="success" onClose={() => setSuccessMessage('')} dismissible>
-          {successMessage}
-        </Alert>
-      )}
+    <>
+      <Topbar />
+      <div className="orders-dashboard">
+        {successMessage && (
+          <Alert variant="success" onClose={() => setSuccessMessage('')} dismissible>
+            {successMessage}
+          </Alert>
+        )}
 
-      <div className="dashboard-header mb-4">
-        <div>
-          <h1 className="fw-bold mb-2">Order Management</h1>
-          <p className="text-muted mb-0">View and manage customer orders</p>
-        </div>
-        <div className="header-actions">
-          <div className="search-container me-3">
-            <FiSearch className="search-icon" />
-            <Form.Control 
-              type="search" 
-              placeholder="Search orders..." 
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
+        <div className="dashboard-header mb-4">
+          <div className="container-fluid">
+            <div className="row align-items-center mb-3 mb-md-0">
+              <div className="col-md-6 mb-3 mb-md-0">
+                <h1 className="fw-bold mb-1">Order Management</h1>
+                <p className="text-muted mb-0">View and manage customer orders</p>
+              </div>
+              <div className="col-md-6 d-flex flex-column flex-md-row gap-3">
+                <div className="search-container flex-grow-1">
+                  <FiSearch className="search-icon" />
+                  <Form.Control 
+                    type="search" 
+                    placeholder="Search orders..." 
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+                <Form.Select 
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  style={{ width: '150px' }}
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="completed">Completed</option>
+                </Form.Select>
+              </div>
+            </div>
           </div>
-          <Form.Select 
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            style={{ width: '150px' }}
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
-            <option value="shipped">Shipped</option>
-            <option value="completed">Completed</option>
-          </Form.Select>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-3">Loading orders...</p>
           </div>
-          <p className="mt-3">Loading orders...</p>
-        </div>
-      ) : (
-        <>
-          <div className="table-responsive">
-            <Table striped bordered hover className="orders-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentOrders.length > 0 ? (
-                  currentOrders.map(order => (
-                    <tr key={order.id}>
-                      <td>{order.id}</td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <FiUser className="me-2" />
-                          <div>
-                            <div>{order.customer.name}</div>
-                            <small className="text-muted">{order.customer.email}</small>
+        ) : (
+          <>
+            <div className="table-responsive">
+              <Table striped bordered hover className="orders-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentOrders.length > 0 ? (
+                    currentOrders.map(order => (
+                      <tr key={order.id}>
+                        <td>{order.id}</td>
+                        <td>
+                          <div className="d-flex align-items-center">
+                            <FiUser className="me-2" />
+                            <div>
+                              <div>{order.customer.name}</div>
+                              <small className="text-muted">{order.customer.email}</small>
+                            </div>
                           </div>
+                        </td>
+                        <td>{new Date(order.date).toLocaleDateString()}</td>
+                        <td>${order.amount.toFixed(2)}</td>
+                        <td>
+                          <Badge bg={getStatusVariant(order.status)}>
+                            {order.status}
+                          </Badge>
+                        </td>
+                        <td>
+                          <Button 
+                            variant="outline-primary" 
+                            size="sm" 
+                            onClick={() => handleViewDetails(order)}
+                            className="me-2"
+                          >
+                            View
+                          </Button>
+                          {order.status === 'pending' && (
+                            <Button 
+                              variant="outline-success" 
+                              size="sm" 
+                              onClick={() => handleUpdateStatus(order.id, 'processing')}
+                            >
+                              Process
+                            </Button>
+                          )}
+                          {order.status === 'processing' && (
+                            <Button 
+                              variant="outline-info" 
+                              size="sm" 
+                              onClick={() => handleUpdateStatus(order.id, 'shipped')}
+                            >
+                              Ship
+                            </Button>
+                          )}
+                          {order.status === 'shipped' && (
+                            <Button 
+                              variant="outline-success" 
+                              size="sm" 
+                              onClick={() => handleUpdateStatus(order.id, 'completed')}
+                            >
+                              Complete
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="text-center py-4">
+                        <div className="py-3">
+                          <FiSearch size={48} className="text-muted mb-3" />
+                          <h5>No orders found</h5>
+                          <p className="text-muted">Try adjusting your search or filters</p>
                         </div>
                       </td>
-                      <td>{new Date(order.date).toLocaleDateString()}</td>
-                      <td>${order.amount.toFixed(2)}</td>
-                      <td>
-                        <Badge bg={getStatusVariant(order.status)}>
-                          {order.status}
-                        </Badge>
-                      </td>
-                      <td>
-                        <Button 
-                          variant="outline-primary" 
-                          size="sm" 
-                          onClick={() => handleViewDetails(order)}
-                          className="me-2"
-                        >
-                          View
-                        </Button>
-                        {order.status === 'pending' && (
-                          <Button 
-                            variant="outline-success" 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(order.id, 'processing')}
-                          >
-                            Process
-                          </Button>
-                        )}
-                        {order.status === 'processing' && (
-                          <Button 
-                            variant="outline-info" 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(order.id, 'shipped')}
-                          >
-                            Ship
-                          </Button>
-                        )}
-                        {order.status === 'shipped' && (
-                          <Button 
-                            variant="outline-success" 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(order.id, 'completed')}
-                          >
-                            Complete
-                          </Button>
-                        )}
-                      </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="text-center py-4">
-                      <div className="py-3">
-                        <FiSearch size={48} className="text-muted mb-3" />
-                        <h5>No orders found</h5>
-                        <p className="text-muted">Try adjusting your search or filters</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </div>
-
-          {filteredOrders.length > 0 && (
-            <div className="d-flex justify-content-center mt-4">
-              <Pagination>
-                <Pagination.Prev 
-                  onClick={() => paginate(currentPage - 1)} 
-                  disabled={currentPage === 1}
-                />
-                {[...Array(totalPages).keys()].map(i => (
-                  <Pagination.Item
-                    key={i + 1}
-                    active={currentPage === i + 1}
-                    onClick={() => paginate(i + 1)}
-                  >
-                    {i + 1}
-                  </Pagination.Item>
-                ))}
-                <Pagination.Next 
-                  onClick={() => paginate(currentPage + 1)} 
-                  disabled={currentPage === totalPages}
-                />
-              </Pagination>
+                  )}
+                </tbody>
+              </Table>
             </div>
-          )}
-        </>
-      )}
 
-      {/* Order Details Modal */}
-      {selectedOrder && (
-        <div className={`modal fade ${showDetails ? 'show d-block' : ''}`} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Order Details - {selectedOrder.id}</h5>
-                <button type="button" className="btn-close" onClick={handleCloseDetails}></button>
+            {filteredOrders.length > 0 && (
+              <div className="d-flex justify-content-center mt-4">
+                <Pagination>
+                  <Pagination.Prev 
+                    onClick={() => paginate(currentPage - 1)} 
+                    disabled={currentPage === 1}
+                  />
+                  {[...Array(totalPages).keys()].map(i => (
+                    <Pagination.Item
+                      key={i + 1}
+                      active={currentPage === i + 1}
+                      onClick={() => paginate(i + 1)}
+                    >
+                      {i + 1}
+                    </Pagination.Item>
+                  ))}
+                  <Pagination.Next 
+                    onClick={() => paginate(currentPage + 1)} 
+                    disabled={currentPage === totalPages}
+                  />
+                </Pagination>
               </div>
-              <div className="modal-body">
-                <div className="row mb-4">
-                  <div className="col-md-6">
-                    <Card>
-                      <Card.Header className="d-flex align-items-center">
-                        <FiUser className="me-2" />
-                        <span>Customer Information</span>
-                      </Card.Header>
-                      <Card.Body>
-                        <p><strong>Name:</strong> {selectedOrder.customer.name}</p>
-                        <p><strong>Email:</strong> {selectedOrder.customer.email}</p>
-                      </Card.Body>
-                    </Card>
-                  </div>
-                  <div className="col-md-6">
-                    <Card>
-                      <Card.Header className="d-flex align-items-center">
-                        <FiCalendar className="me-2" />
-                        <span>Order Information</span>
-                      </Card.Header>
-                      <Card.Body>
-                        <p><strong>Date:</strong> {new Date(selectedOrder.date).toLocaleDateString()}</p>
-                        <p><strong>Status:</strong> 
-                          <Badge bg={getStatusVariant(selectedOrder.status)} className="ms-2">
-                            {selectedOrder.status}
-                          </Badge>
-                        </p>
-                        <p><strong>Total:</strong> ${selectedOrder.amount.toFixed(2)}</p>
-                      </Card.Body>
-                    </Card>
-                  </div>
+            )}
+          </>
+        )}
+
+        {/* Order Details Modal */}
+        {selectedOrder && (
+          <div className={`modal fade ${showDetails ? 'show d-block' : ''}`} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Order Details - {selectedOrder.id}</h5>
+                  <button type="button" className="btn-close" onClick={handleCloseDetails}></button>
                 </div>
+                <div className="modal-body">
+                  <div className="row mb-4">
+                    <div className="col-md-6">
+                      <Card>
+                        <Card.Header className="d-flex align-items-center">
+                          <FiUser className="me-2" />
+                          <span>Customer Information</span>
+                        </Card.Header>
+                        <Card.Body>
+                          <p><strong>Name:</strong> {selectedOrder.customer.name}</p>
+                          <p><strong>Email:</strong> {selectedOrder.customer.email}</p>
+                        </Card.Body>
+                      </Card>
+                    </div>
+                    <div className="col-md-6">
+                      <Card>
+                        <Card.Header className="d-flex align-items-center">
+                          <FiCalendar className="me-2" />
+                          <span>Order Information</span>
+                        </Card.Header>
+                        <Card.Body>
+                          <p><strong>Date:</strong> {new Date(selectedOrder.date).toLocaleDateString()}</p>
+                          <p><strong>Status:</strong> 
+                            <Badge bg={getStatusVariant(selectedOrder.status)} className="ms-2">
+                              {selectedOrder.status}
+                            </Badge>
+                          </p>
+                          <p><strong>Total:</strong> ${selectedOrder.amount.toFixed(2)}</p>
+                        </Card.Body>
+                      </Card>
+                    </div>
+                  </div>
 
-                <Card className="mb-4">
-                  <Card.Header className="d-flex align-items-center">
-                    <FiPackage className="me-2" />
-                    <span>Order Items</span>
-                  </Card.Header>
-                  <Card.Body>
-                    <Table striped bordered hover>
-                      <thead>
-                        <tr>
-                          <th>Product</th>
-                          <th>Price</th>
-                          <th>Quantity</th>
-                          <th>Subtotal</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedOrder.items.map(item => (
-                          <tr key={item.id}>
-                            <td>{item.name}</td>
-                            <td>${item.price.toFixed(2)}</td>
-                            <td>{item.quantity}</td>
-                            <td>${(item.price * item.quantity).toFixed(2)}</td>
+                  <Card className="mb-4">
+                    <Card.Header className="d-flex align-items-center">
+                      <FiPackage className="me-2" />
+                      <span>Order Items</span>
+                    </Card.Header>
+                    <Card.Body>
+                      <Table striped bordered hover>
+                        <thead>
+                          <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
                           </tr>
-                        ))}
-                        <tr>
-                          <td colSpan="3" className="text-end"><strong>Total:</strong></td>
-                          <td><strong>${selectedOrder.amount.toFixed(2)}</strong></td>
-                        </tr>
-                      </tbody>
-                    </Table>
-                  </Card.Body>
-                </Card>
+                        </thead>
+                        <tbody>
+                          {selectedOrder.items.map(item => (
+                            <tr key={item.id}>
+                              <td>{item.name}</td>
+                              <td>${item.price.toFixed(2)}</td>
+                              <td>{item.quantity}</td>
+                              <td>${(item.price * item.quantity).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <td colSpan="3" className="text-end"><strong>Total:</strong></td>
+                            <td><strong>${selectedOrder.amount.toFixed(2)}</strong></td>
+                          </tr>
+                        </tbody>
+                      </Table>
+                    </Card.Body>
+                  </Card>
 
-                <Card>
-                  <Card.Header className="d-flex align-items-center">
-                    <FiTruck className="me-2" />
-                    <span>Shipping Information</span>
-                  </Card.Header>
-                  <Card.Body>
-                    <p><strong>Address:</strong> {selectedOrder.shipping.address}</p>
-                    {selectedOrder.status !== 'pending' && (
-                      <>
-                        <p><strong>Carrier:</strong> {selectedOrder.shipping.carrier}</p>
-                        <p><strong>Tracking Number:</strong> {selectedOrder.shipping.tracking}</p>
-                      </>
-                    )}
-                    {selectedOrder.status === 'pending' && (
-                      <p className="text-muted">Shipping information will be available once order is processed</p>
-                    )}
-                  </Card.Body>
-                </Card>
-              </div>
-              <div className="modal-footer">
-                <Button variant="secondary" onClick={handleCloseDetails}>
-                  Close
-                </Button>
-                {selectedOrder.status === 'pending' && (
-                  <Button variant="success" onClick={() => {
-                    handleUpdateStatus(selectedOrder.id, 'processing');
-                    handleCloseDetails();
-                  }}>
-                    <FiCheckCircle className="me-1" /> Process Order
+                  <Card>
+                    <Card.Header className="d-flex align-items-center">
+                      <FiTruck className="me-2" />
+                      <span>Shipping Information</span>
+                    </Card.Header>
+                    <Card.Body>
+                      <p><strong>Address:</strong> {selectedOrder.shipping.address}</p>
+                      {selectedOrder.status !== 'pending' && (
+                        <>
+                          <p><strong>Carrier:</strong> {selectedOrder.shipping.carrier}</p>
+                          <p><strong>Tracking Number:</strong> {selectedOrder.shipping.tracking}</p>
+                        </>
+                      )}
+                      {selectedOrder.status === 'pending' && (
+                        <p className="text-muted">Shipping information will be available once order is processed</p>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </div>
+                <div className="modal-footer">
+                  <Button variant="secondary" onClick={handleCloseDetails}>
+                    Close
                   </Button>
-                )}
-                {selectedOrder.status === 'processing' && (
-                  <Button variant="info" onClick={() => {
-                    handleUpdateStatus(selectedOrder.id, 'shipped');
-                    handleCloseDetails();
-                  }}>
-                    <FiTruck className="me-1" /> Mark as Shipped
-                  </Button>
-                )}
-                {selectedOrder.status === 'shipped' && (
-                  <Button variant="success" onClick={() => {
-                    handleUpdateStatus(selectedOrder.id, 'completed');
-                    handleCloseDetails();
-                  }}>
-                    <FiCheckCircle className="me-1" /> Mark as Completed
-                  </Button>
-                )}
+                  {selectedOrder.status === 'pending' && (
+                    <Button variant="success" onClick={() => {
+                      handleUpdateStatus(selectedOrder.id, 'processing');
+                      handleCloseDetails();
+                    }}>
+                      <FiCheckCircle className="me-1" /> Process Order
+                    </Button>
+                  )}
+                  {selectedOrder.status === 'processing' && (
+                    <Button variant="info" onClick={() => {
+                      handleUpdateStatus(selectedOrder.id, 'shipped');
+                      handleCloseDetails();
+                    }}>
+                      <FiTruck className="me-1" /> Mark as Shipped
+                    </Button>
+                  )}
+                  {selectedOrder.status === 'shipped' && (
+                    <Button variant="success" onClick={() => {
+                      handleUpdateStatus(selectedOrder.id, 'completed');
+                      handleCloseDetails();
+                    }}>
+                      <FiCheckCircle className="me-1" /> Mark as Completed
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 
