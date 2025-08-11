@@ -1,16 +1,13 @@
 import React from 'react';
 import { 
-  FiHome, 
-  FiShoppingBag, 
-  FiUsers, 
-  FiPackage, 
-  FiBarChart2,
   FiDollarSign,
-  FiSettings,
-  FiLogOut
+  FiShoppingBag,
+  FiUsers,
+  FiPackage
 } from 'react-icons/fi';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import '../Style/Dashboard.css';
+import Topbar from './Topbar';
 
 const Dashboard = () => {
   const location = useLocation();
@@ -24,127 +21,63 @@ const Dashboard = () => {
   };
 
   return (
-<>
-      {/* Main Content */}
-      <div className="main-content">
-        
-
-        {/* Dashboard Content */}
+    <>
+      <Topbar />
+      <div className="dashboard-main">
         {location.pathname === '/dashboard' ? (
-          <div className="dashboard-content">
-            <h1 className="page-title">Dashboard Overview</h1>
-            
-            {/* Stats Cards */}
-            <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-icon sales">
-                  <FiDollarSign />
-                </div>
-                <div className="stat-info">
-                  <h3>Total Sales</h3>
-                  <p>${stats.totalSales.toLocaleString()}</p>
+          <div className="dashboard-header beautiful-dashboard-header">
+            <div className="container-fluid">
+              <div className="row align-items-center mb-3 mb-md-0">
+                <div className="col-12 text-center mb-4">
+                  <h1 className="fw-bold mb-1 gradient-text">Dashboard Overview</h1>
+                  <p className="text-muted mb-0 fs-5">Your business summary at a glance</p>
                 </div>
               </div>
-              
-              <div className="stat-card">
-                <div className="stat-icon orders">
-                  <FiShoppingBag />
+              <div className="row g-4 mt-2 justify-content-center">
+                <div className="col-12 col-sm-6 col-lg-3">
+                  <div className="stat-card stat-card-glass">
+                    <div className="stat-icon stat-icon-sales">
+                      <FiDollarSign size={32} />
+                    </div>
+                    <div>
+                      <div className="stat-value">${stats.totalSales.toLocaleString()}</div>
+                      <div className="stat-label">Total Sales</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="stat-info">
-                  <h3>Total Orders</h3>
-                  <p>{stats.totalOrders}</p>
+                <div className="col-12 col-sm-6 col-lg-3">
+                  <div className="stat-card stat-card-glass">
+                    <div className="stat-icon stat-icon-orders">
+                      <FiShoppingBag size={32} />
+                    </div>
+                    <div>
+                      <div className="stat-value">{stats.totalOrders}</div>
+                      <div className="stat-label">Total Orders</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="stat-card">
-                <div className="stat-icon customers">
-                  <FiUsers />
+                <div className="col-12 col-sm-6 col-lg-3">
+                  <div className="stat-card stat-card-glass">
+                    <div className="stat-icon stat-icon-customers">
+                      <FiUsers size={32} />
+                    </div>
+                    <div>
+                      <div className="stat-value">{stats.newCustomers}</div>
+                      <div className="stat-label">New Customers</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="stat-info">
-                  <h3>New Customers</h3>
-                  <p>{stats.newCustomers}</p>
+                <div className="col-12 col-sm-6 col-lg-3">
+                  <div className="stat-card stat-card-glass">
+                    <div className="stat-icon stat-icon-product">
+                      <FiPackage size={32} />
+                    </div>
+                    <div>
+                      <div className="stat-value">{stats.topProduct}</div>
+                      <div className="stat-label">Top Product</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="stat-card">
-                <div className="stat-icon products">
-                  <FiPackage />
-                </div>
-                <div className="stat-info">
-                  <h3>Top Product</h3>
-                  <p>{stats.topProduct}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="recent-activity">
-              <div className="section-header">
-                <h2>Recent Orders</h2>
-                <Link to="/orders" className="view-all">View All</Link>
-              </div>
-              
-              <div className="activity-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Customer</th>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>ORD-1042</td>
-                      <td>John Doe</td>
-                      <td>2023-07-28</td>
-                      <td>$125.50</td>
-                      <td><span className="badge completed">Completed</span></td>
-                    </tr>
-                    <tr>
-                      <td>ORD-1041</td>
-                      <td>Jane Smith</td>
-                      <td>2023-07-27</td>
-                      <td>$89.99</td>
-                      <td><span className="badge shipped">Shipped</span></td>
-                    </tr>
-                    <tr>
-                      <td>ORD-1040</td>
-                      <td>Robert Johnson</td>
-                      <td>2023-07-26</td>
-                      <td>$210.75</td>
-                      <td><span className="badge processing">Processing</span></td>
-                    </tr>
-                    <tr>
-                      <td>ORD-1039</td>
-                      <td>Emily Davis</td>
-                      <td>2023-07-25</td>
-                      <td>$45.99</td>
-                      <td><span className="badge pending">Pending</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="quick-actions">
-              <h2>Quick Actions</h2>
-              <div className="action-buttons">
-                <Link to="/dashboard/orders/new" className="action-btn">
-                  <FiShoppingBag />
-                  <span>Create New Order</span>
-                </Link>
-                <Link to="/dashboard/products/new" className="action-btn">
-                  <FiPackage />
-                  <span>Add New Product</span>
-                </Link>
-                <Link to="/dashboard/customers/new" className="action-btn">
-                  <FiUsers />
-                  <span>Add New Customer</span>
-                </Link>
               </div>
             </div>
           </div>
@@ -152,7 +85,6 @@ const Dashboard = () => {
           <Outlet />
         )}
       </div>
-
     </>
   );
 };

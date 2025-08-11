@@ -1,64 +1,44 @@
-import React, { useState } from 'react';
-import { StyleSheet, ScrollView, Text, View, Image, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ScrollView, Text, View, Image, TouchableOpacity, Animated, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
-const { width } = Dimensions.get('window');
 
-const products = [
-  {
-    id: '1',
-    title: 'Modern Light Clothes',
-    type: 'Premium T-Shirt',
-    price: 212.99,
-    discountPrice: 179.99,
-    rating: 5.0,
-    description: 'Crafted from organic cotton with a luxurious soft finish. The perfect balance of comfort and style for your everyday wardrobe. Features moisture-wicking technology and reinforced stitching for durability.',
-    stockStatus: 'In Stock',
-    brand: 'UrbanWear',
-    discountPercentage: 15,
-    image: require('../assets/images/product1.png'),
-    colors: ['#3A5F0B', '#1E3A1A', '#000000'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    features: [
-      { icon: 'leaf', color: '#4CAF50', text: 'Eco-friendly materials' },
-      { icon: 'shirt', color: '#2196F3', text: 'Premium craftsmanship' },
-      { icon: 'return-up-back', color: '#9C27B0', text: 'Easy 30-day returns' }
-    ]
-  },
-  {
-    id: '2',
-    title: 'Light Dress Bless',
-    type: 'Elegant Dress',
-    price: 162.99,
-    discountPrice: 139.99,
-    rating: 4.5,
-    description: 'An exquisite dress featuring delicate embroidery and a flattering silhouette. The lightweight fabric drapes beautifully while providing comfortable all-day wear.',
-    stockStatus: 'In Stock',
-    brand: 'FashionPlus',
-    discountPercentage: 12,
-    image: require('../assets/images/1.webp'),
-    colors: ['#E6C9A8', '#5D4037', '#FFFFFF'],
-    sizes: ['XS', 'S', 'M'],
-    features: [
-      { icon: 'flower', color: '#E91E63', text: 'Floral embroidery' },
-      { icon: 'body', color: '#795548', text: 'Flattering silhouette' },
-      { icon: 'sunny', color: '#FF9800', text: 'Lightweight fabric' }
-    ]
-  }
-];
+const { width } = Dimensions.get('window');
 
 const ProductDetailPage = () => {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const [quantity, setQuantity] = useState(1);
   const [scaleValue] = useState(new Animated.Value(1));
-  const [selectedColor, setSelectedColor] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(0);
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+  const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const product = products.find(item => item.id === id);
+  useEffect(() => {
+    if (id) {
+      fetch(`http://localhost:3001/api/products/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          setProduct(data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error("Error fetching product detail:", err);
+          setLoading(false);
+        });
+    }
+  }, [id]);
+
+  if (loading) {
+    return <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
+      <Text>Loading...</Text>
+    </View>;
+  }
 
   if (!product) {
     return (
@@ -68,97 +48,96 @@ const ProductDetailPage = () => {
     );
   }
 
-  const animatePress = (animationValue) => {
-    Animated.spring(animationValue, {
+  const animatePress = () => {
+    Animated.spring(scaleValue, {
       toValue: 0.95,
       friction: 3,
       useNativeDriver: true
     }).start(() => {
-      Animated.spring(animationValue, {
+      Animated.spring(scaleValue, {
         toValue: 1,
         friction: 3,
         useNativeDriver: true
       }).start();
     });
   };
-const handleAddToCart = async () => {
-  animatePress(scaleValue);
 
-  const newItem = {
-    id: product.id,
-    title: product.title,
-    type: product.type,
-    price: product.discountPrice,
-    image: product.image,
-    color: product.colors[selectedColor],
-    size: product.sizes[selectedSize],
-    quantity: quantity
+  const colors = product.variants.map(v => v.colorCode);
+  const sizes = product.variants[selectedColorIndex]?.sizes || [];
+
+  const selectedSizeObj = sizes[selectedSizeIndex] || { price: 0, stock: 0 };
+  const price = selectedSizeObj.price;
+  const stock = selectedSizeObj.stock;
+
+  const handleAddToCart = async () => {
+    animatePress();
+
+    const selectedVariant = product.variants[selectedColorIndex];
+    const sizeObj = selectedVariant.sizes[selectedSizeIndex];
+
+    const newItem = {
+      id: product._id,
+      title: product.name,
+      image: product.image,
+      color: selectedVariant.color,
+      size: sizeObj.size,
+      price: sizeObj.price,
+      quantity
+    };
+
+    try {
+      const storedCart = await AsyncStorage.getItem('cart');
+      const cart = storedCart ? JSON.parse(storedCart) : [];
+
+      const existingIndex = cart.findIndex(
+        item => item.id === newItem.id && item.color === newItem.color && item.size === newItem.size
+      );
+
+      if (existingIndex >= 0) {
+        cart[existingIndex].quantity += newItem.quantity;
+      } else {
+        if (cart.length >= 4) {
+          Alert.alert('Limit Reached', 'You can only add up to 4 unique products.');
+          return;
+        }
+        cart.push(newItem);
+      }
+
+      await AsyncStorage.setItem('cart', JSON.stringify(cart));
+      router.push('/CartScreen');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      Alert.alert('Error', 'Failed to add item to cart.');
+    }
   };
 
-  try {
-    const storedCart = await AsyncStorage.getItem('cart');
-    const cart = storedCart ? JSON.parse(storedCart) : [];
-
-    const existingIndex = cart.findIndex(
-      item => item.id === newItem.id && item.color === newItem.color && item.size === newItem.size
-    );
-
-    if (existingIndex >= 0) {
-      // Item exists with same variation; just update quantity
-      cart[existingIndex].quantity += newItem.quantity;
-    } else {
-      // New variation or product
-      if (cart.length >= 4) {
-        Alert.alert('Limit Reached', 'You can only add up to 4 unique products.');
-        return;
-      }
-      cart.push(newItem);
-    }
-
-    await AsyncStorage.setItem('cart', JSON.stringify(cart));
-    router.push('/CartScreen');
-  } catch (error) {
-    console.error('Error adding to cart:', error);
-    Alert.alert('Error', 'Failed to add item to cart.');
-  }
-};
-
-
   const handleIncrement = () => {
-    animatePress(scaleValue);
+    animatePress();
     setQuantity(prev => prev + 1);
   };
 
   const handleDecrement = () => {
     if (quantity > 1) {
-      animatePress(scaleValue);
+      animatePress();
       setQuantity(prev => prev - 1);
     }
-  };
-
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
   };
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Product Image with Floating Elements */}
+        {/* Product Image */}
         <View style={styles.imageContainer}>
-          <Image
-            source={product.image}
-            style={styles.productImage}
-            resizeMode="contain"
-          />
-          
-          {product.discountPercentage && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountBadgeText}>
-                {product.discountPercentage}% OFF
-              </Text>
-            </View>
+          {product.image ? (
+            <Image
+              source={{ uri: product.image }}
+              style={styles.productImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.noImage}><Text>No Image</Text></View>
           )}
-          
+
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.canGoBack?.() ? router.back() : router.replace('/')}
@@ -168,7 +147,7 @@ const handleAddToCart = async () => {
           
           <TouchableOpacity
             style={styles.favoriteButton}
-            onPress={toggleFavorite}
+            onPress={() => setIsFavorite(!isFavorite)}
           >
             <Ionicons 
               name={isFavorite ? "heart" : "heart-outline"} 
@@ -178,60 +157,41 @@ const handleAddToCart = async () => {
           </TouchableOpacity>
         </View>
 
-        {/* Product Details */}
+        {/* Details */}
         <View style={styles.contentContainer}>
           <View style={styles.header}>
-            <Text style={styles.productTitle}>{product.title}</Text>
-            <Text style={styles.productType}>{product.type}</Text>
-          </View>
-
-          {/* Rating */}
-          <View style={styles.ratingContainer}>
-            <View style={styles.starsContainer}>
-              {Array.from({ length: 5 }).map((_, index) => (
-                <Ionicons
-                  key={index}
-                  name={index < Math.round(product.rating) ? 'star' : 'star-outline'}
-                  size={20}
-                  color="#FFD700"
-                />
-              ))}
-            </View>
-            <Text style={styles.ratingText}>{product.rating.toFixed(1)} • 128 Reviews</Text>
+            <Text style={styles.productTitle}>{product.name}</Text>
+            <Text style={styles.productType}>{product.brand}</Text>
           </View>
 
           {/* Price */}
           <View style={styles.priceContainer}>
-            <Text style={styles.discountedPrice}>${product.discountPrice.toFixed(2)}</Text>
-            {product.discountPrice < product.price && (
-              <Text style={styles.originalPrice}>${product.price.toFixed(2)}</Text>
-            )}
-            <View style={styles.savingsTag}>
-              <Text style={styles.savingsText}>
-                Save ${(product.price - product.discountPrice).toFixed(2)}
-              </Text>
-            </View>
+            <Text style={styles.originalPrice}>${price.toFixed(2)}</Text>
+            <Text style={styles.price}>${(price).toFixed(2)}</Text>
+            
           </View>
 
-          {/* Divider */}
           <View style={styles.divider} />
 
           {/* Color Selection */}
           <View style={styles.optionSection}>
             <Text style={styles.optionTitle}>Color</Text>
             <View style={styles.colorOptions}>
-              {product.colors.map((color, index) => (
+              {colors.map((color, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
                     styles.colorOption,
                     { backgroundColor: color },
-                    selectedColor === index && styles.selectedColorOption
+                    selectedColorIndex === index && styles.selectedColorOption
                   ]}
-                  onPress={() => setSelectedColor(index)}
+                  onPress={() => {
+                    setSelectedColorIndex(index);
+                    setSelectedSizeIndex(0);
+                  }}
                 >
-                  {selectedColor === index && (
-                    <Ionicons name="checkmark" size={16} color="#FFF" style={styles.colorCheckmark} />
+                  {selectedColorIndex === index && (
+                    <Ionicons name="checkmark" size={16} color="#FFF" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -242,20 +202,20 @@ const handleAddToCart = async () => {
           <View style={styles.optionSection}>
             <Text style={styles.optionTitle}>Size</Text>
             <View style={styles.sizeOptions}>
-              {product.sizes.map((size, index) => (
+              {sizes.map((sizeObj, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
                     styles.sizeOption,
-                    selectedSize === index && styles.selectedSizeOption
+                    selectedSizeIndex === index && styles.selectedSizeOption
                   ]}
-                  onPress={() => setSelectedSize(index)}
+                  onPress={() => setSelectedSizeIndex(index)}
                 >
                   <Text style={[
                     styles.sizeText,
-                    selectedSize === index && styles.selectedSizeText
+                    selectedSizeIndex === index && styles.selectedSizeText
                   ]}>
-                    {size}
+                    {sizeObj.size}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -268,84 +228,35 @@ const handleAddToCart = async () => {
             <Text style={styles.description}>{product.description}</Text>
           </View>
 
-          {/* Features */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Features</Text>
-            <View style={styles.featuresContainer}>
-              {product.features.map((feature, index) => (
-                <View key={index} style={styles.featureItem}>
-                  <Ionicons name={feature.icon} size={20} color={feature.color} />
-                  <Text style={styles.featureText}>{feature.text}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
           {/* Quantity Selector */}
           <View style={styles.quantityContainer}>
             <Text style={styles.quantityLabel}>Quantity</Text>
             <View style={styles.quantityControl}>
-              <TouchableOpacity 
-                onPress={handleDecrement}
-                disabled={quantity <= 1}
-                style={[
-                  styles.quantityButton, 
-                  styles.quantityButtonLeft,
-                  quantity <= 1 && styles.disabledButton
-                ]}
-                activeOpacity={0.6}
-              >
-                <View style={styles.buttonInner}>
-                  <Ionicons 
-                    name="remove" 
-                    size={22} 
-                    color={quantity <= 1 ? '#aaa' : '#fff'} 
-                  />
-                </View>
+              <TouchableOpacity onPress={handleDecrement} disabled={quantity <= 1} style={styles.quantityButton}>
+                <Ionicons name="remove" size={22} color="#fff" />
               </TouchableOpacity>
-              
-              <Animated.View style={[styles.quantityDisplay, { transform: [{ scale: scaleValue }] }]}>
+              <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
                 <Text style={styles.quantityText}>{quantity}</Text>
               </Animated.View>
-              
-              <TouchableOpacity 
-                onPress={handleIncrement}
-                style={[styles.quantityButton, styles.quantityButtonRight]}
-                activeOpacity={0.6}
-              >
-                <View style={styles.buttonInner}>
-                  <Ionicons name="add" size={22} color="#fff" />
-                </View>
+              <TouchableOpacity onPress={handleIncrement} style={styles.quantityButton}>
+                <Ionicons name="add" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </ScrollView>
 
-      {/* Add to Cart Button (Fixed at bottom) */}
-      <Animated.View style={[styles.buttonContainer, { transform: [{ scale: scaleValue }] }]}>
-        <TouchableOpacity 
-          onPress={handleAddToCart}
-          disabled={product.stockStatus.toLowerCase() === 'out of stock'}
-          style={[
-            styles.addToCartButton,
-            product.stockStatus.toLowerCase() === 'out of stock' && styles.disabledButton
-          ]}
-          activeOpacity={0.8}
-        >
-          <Ionicons 
-            name="cart" 
-            size={22} 
-            color="white" 
-            style={styles.cartIcon} 
-          />
-          <Text style={styles.buttonText}>
-            {product.stockStatus.toLowerCase() === 'out of stock' 
-              ? 'Out of Stock' 
-              : `Add to Cart • $${(product.discountPrice * quantity).toFixed(2)}`}
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
+      {/* Add to Cart Button */}
+      <TouchableOpacity 
+        onPress={handleAddToCart}
+        disabled={stock <= 0}
+        style={[styles.addToCartButton, stock <= 0 && styles.disabledButton]}
+      >
+        <Ionicons name="cart" size={22} color="white" style={styles.cartIcon} />
+        <Text style={styles.buttonText}>
+          {stock <= 0 ? 'Out of Stock' : `Add to Cart • $${(price * quantity).toFixed(2)}`}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };

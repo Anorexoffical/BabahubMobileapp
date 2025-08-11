@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
+
+import { useRouter } from 'expo-router';
+
 
 const featuredBrands = [
   {
@@ -42,49 +45,24 @@ const featuredBrands = [
   },
 ];
 
-const recommendedProducts = [
-  {
-    id: 1,
-    name: 'Green Nike sports shoe',
-    brand: 'Nike',
-    price: '$122.6',
-    discount: '78%',
-    rating: 4.8,
-    image: 'https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/3a2f1a32-4a8d-4978-b173-8434707b1e5e/air-zoom-pegasus-39-road-running-shoes-BpCggh.png',
-  },
-  {
-    id: 2,
-    name: 'Nike Air Jordan Shoes',
-    brand: 'Nike',
-    price: '$35.0',
-    discount: '14%',
-    rating: 4.5,
-    image: 'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/2fd03263-44b4-4078-b9b5-d3535717c077/air-jordan-1-mid-mens-shoes-b3js2T.png',
-  },
-  {
-    id: 3,
-    name: 'Adidas Running Shoes',
-    brand: 'Adidas',
-    price: '$120.0',
-    discount: '25%',
-    rating: 4.7,
-    image: 'https://assets.adidas.com/images/w_600,f_auto,q_auto/6f4d8a9a5d9b4b4c8f5aad5300f5f8f_9366/Ultraboost_Light_Shoes_Black_HP9205_01_standard.jpg',
-  },
-  {
-    id: 4,
-    name: 'IKEA Desk Lamp',
-    brand: 'IKEA',
-    price: '$29.99',
-    discount: '10%',
-    rating: 4.2,
-    image: 'https://www.ikea.com/us/en/images/products/tradfri-led-bulb-e26-806-lumen-wireless-dimmable-warm-white-globe-clear__0981569_pe815033_s5.jpg',
-  },
-];
 
 const StoreScreen = () => {
   const [searchText, setSearchText] = useState('');
   const [wishlist, setWishlist] = useState([]);
   const [cartItems, setCartItems] = useState([]);
+
+  const [products, setProducts] = useState([]);
+  const router = useRouter();
+
+  // Fetching from backend
+  useEffect(() => {
+    fetch('http://localhost:3001/api/products') 
+      .then(res => res.json())
+      .then(data => setProducts(data))
+      .catch(err => console.error('Error fetching products:', err));
+  }, []);
+
+
 
   const toggleWishlist = (productId) => {
     if (wishlist.includes(productId)) {
@@ -100,6 +78,13 @@ const StoreScreen = () => {
     }
   };
 
+  const handleProductPress = (product) => {
+    router.push({
+      pathname: '../ProductDetailPage',
+      params: { id: product._id },
+    });
+  };
+
   const renderBrandCard = ({ item }) => (
     <TouchableOpacity style={styles.brandCard} activeOpacity={0.8}>
       <View style={styles.brandImageContainer}>
@@ -109,44 +94,42 @@ const StoreScreen = () => {
       <Text style={styles.brandProducts}>{item.products} products</Text>
     </TouchableOpacity>
   );
+  
+  const renderProductCard = ({ item }) => {
+    const price = item.variants?.[0]?.sizes?.[0]?.price ?? 0;
 
-  const renderProductCard = ({ item }) => (
-    <View style={styles.productCard}>
-      {item.discount && (
-        <View style={styles.discountTag}>
-          <Text style={styles.discountText}>{item.discount} OFF</Text>
-        </View>
-      )}
-      <TouchableOpacity 
-        style={styles.heartIcon}
-        onPress={() => toggleWishlist(item.id)}
-        activeOpacity={0.7}
+    return (
+      <TouchableOpacity
+        style={styles.productCard}
+        // onPress={() => router.push(`/product/${item._id}`)}
+        onPress={() => handleProductPress(item)} 
+        activeOpacity={0.8}
       >
-        <Ionicons 
-          name={wishlist.includes(item.id) ? "heart" : "heart-outline"} 
-          size={20} 
-          color={wishlist.includes(item.id) ? "#ff4757" : "#000"} 
-        />
-      </TouchableOpacity>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <View style={styles.ratingContainer}>
-        <Ionicons name="star" size={14} color="#FFD700" />
-        <Text style={styles.ratingText}>{item.rating}</Text>
-      </View>
-      <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-      <Text style={styles.productBrand}>{item.brand}</Text>
-      <View style={styles.priceAddContainer}>
-        <Text style={styles.productPrice}>{item.price}</Text>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => addToCart(item.id)}
-          activeOpacity={0.7}
+        <TouchableOpacity
+          style={styles.heartIcon}
+          onPress={() => toggleWishlist(item._id)}
         >
-          <Ionicons name="add" size={20} color="#fff" />
+          <Ionicons
+            name={wishlist.includes(item._id) ? "heart" : "heart-outline"}
+            size={20}
+            color={wishlist.includes(item._id) ? "#ff4757" : "#000"}
+          />
         </TouchableOpacity>
-      </View>
-    </View>
-  );
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+        <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+        <Text style={styles.productBrand}>{item.brand}</Text>
+        <View style={styles.priceAddContainer}>
+          <Text style={styles.productPrice}>${price}</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => addToCart(item._id)}
+          >
+            <Ionicons name="add" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -214,10 +197,10 @@ const StoreScreen = () => {
           </TouchableOpacity>
         </View>
         <FlatList
-          data={recommendedProducts}
+          data={products}
           renderItem={renderProductCard}
           numColumns={2}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item._id}
           columnWrapperStyle={styles.productList}
           scrollEnabled={false}
         />
@@ -235,16 +218,16 @@ const StoreScreen = () => {
       {/* Recently Viewed Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recently Viewed</Text>
+          <Text style={styles.sectionTitle}>Top Selling Products</Text>
           <TouchableOpacity activeOpacity={0.7}>
             <Text style={styles.seeAll}>See all</Text>
           </TouchableOpacity>
         </View>
         <FlatList
-          data={recommendedProducts.slice().reverse()}
+          data={[...products].reverse()}
           renderItem={renderProductCard}
           numColumns={2}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item._id}
           columnWrapperStyle={styles.productList}
           scrollEnabled={false}
         />

@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../Models/ProductModel'); // Import Product model
 
-// @route   POST /api/products
-// @desc    Add new product
 router.post('/', async (req, res) => {
   try {
     const product = new Product(req.body);
@@ -15,8 +13,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// @route   PUT /api/products/:id
-// @desc    Edit product by ID
+
 router.put('/:id', async (req, res) => {
   try {
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -33,8 +30,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// @route   GET /api/products
-// @desc    Get all products
+
 router.get('/', async (req, res) => {
   try {
     const products = await Product.find();
@@ -43,5 +39,29 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// for featured products
+router.get('/featured', async (req, res) => {
+  try {
+    const products = await Product.find({ isFeatured: true });
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching featured products', error });
+  }
+});
+
+//for product detail page
+router.get('/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "Not found" });
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
 
 module.exports = router;
