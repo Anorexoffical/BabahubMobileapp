@@ -88,7 +88,8 @@ const StoreScreen = () => {
   const renderBrandCard = ({ item }) => (
     <TouchableOpacity style={styles.brandCard} activeOpacity={0.8}>
       <View style={styles.brandImageContainer}>
-        <Image source={{ uri: item.image }} style={styles.brandImage} />
+        <Image source={{ uri: item.image }} 
+        style={styles.brandImage} />
       </View>
       <Text style={styles.brandName}>{item.name}</Text>
       <Text style={styles.brandProducts}>{item.products} products</Text>
@@ -115,7 +116,8 @@ const StoreScreen = () => {
             color={wishlist.includes(item._id) ? "#ff4757" : "#000"}
           />
         </TouchableOpacity>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
+        <Image source={{ uri: `http://localhost:3001${item.image}` }}
+        style={styles.productImage} />
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
         <Text style={styles.productBrand}>{item.brand}</Text>
         <View style={styles.priceAddContainer}>

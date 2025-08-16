@@ -24,119 +24,6 @@ const defaultUser = {
   profileImage: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
 };
 
-// const products = [
-//   {
-//     id: '1',
-//     title: 'Modern Light Clothes',
-//     type: 'Premium T-Shirt',
-//     price: 212.99,
-//     discountPrice: 179.99,
-//     rating: 5.0,
-//     description: 'High quality modern light clothes made with organic materials.',
-//     stockStatus: 'In Stock',
-//     brand: 'UrbanWear',
-//     discountPercentage: 15,
-//     image: { uri: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-//     colors: ['#FF6B6B', '#4ECDC4', '#45B7D1'],
-//   },
-//   {
-//     id: '2',
-//     title: 'Elegant Summer Dress',
-//     type: 'Casual Dress',
-//     price: 162.99,
-//     discountPrice: 139.99,
-//     rating: 4.5,
-//     description: 'Stylish and elegant dress for all occasions.',
-//     stockStatus: 'In Stock',
-//     brand: 'FashionPlus',
-//     discountPercentage: 12,
-//     image: { uri: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-//     colors: ['#FF9F1C', '#2EC4B6', '#E71D36'],
-//   },
-//   {
-//     id: '3',
-//     title: 'Classic Denim Jacket',
-//     type: 'Premium Jacket',
-//     price: 189.99,
-//     discountPrice: 149.99,
-//     rating: 4.8,
-//     description: 'Timeless denim jacket for casual outings.',
-//     stockStatus: 'In Stock',
-//     brand: 'DenimCo',
-//     discountPercentage: 21,
-//     image: { uri: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-//     colors: ['#1A1A1A', '#4A4A4A', '#6B8E23'],
-//   },
-//   {
-//     id: '4',
-//     title: 'Silk Evening Gown',
-//     type: 'Luxury Dress',
-//     price: 299.99,
-//     discountPrice: 249.99,
-//     rating: 4.9,
-//     description: 'Luxurious silk gown for special occasions.',
-//     stockStatus: 'Limited Stock',
-//     brand: 'LuxuryFashion',
-//     discountPercentage: 17,
-//     image: { uri: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-//     colors: ['#6A0572', '#AB83A1', '#1E1E1E'],
-//   },
-//   {
-//     id: '5',
-//     title: 'Silk Evening Gown',
-//     type: 'Luxury Dress',
-//     price: 299.99,
-//     discountPrice: 249.99,
-//     rating: 4.9,
-//     description: 'Luxurious silk gown for special occasions.',
-//     stockStatus: 'Limited Stock',
-//     brand: 'LuxuryFashion',
-//     discountPercentage: 17,
-//     image: { uri: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-//     colors: ['#6A0572', '#AB83A1', '#1E1E1E'],
-//   },
-//   {
-//     id: '6',
-//     title: 'Silk Evening Gown',
-//     type: 'Luxury Dress',
-//     price: 299.99,
-//     discountPrice: 249.99,
-//     rating: 4.9,
-//     description: 'Luxurious silk gown for special occasions.',
-//     stockStatus: 'Limited Stock',
-//     brand: 'LuxuryFashion',
-//     discountPercentage: 17,
-//     image: { uri: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-//     colors: ['#6A0572', '#AB83A1', '#1E1E1E'],
-//   },
-//   {
-//     id: '7',
-//     title: 'Silk Evening Gown',
-//     type: 'Luxury Dress',
-//     price: 299.99,
-//     discountPrice: 249.99,
-//     rating: 4.9,
-//     description: 'Luxurious silk gown for special occasions.',
-//     stockStatus: 'Limited Stock',
-//     brand: 'LuxuryFashion',
-//     discountPercentage: 17,
-//     image: { uri: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-//     colors: ['#6A0572', '#AB83A1', '#1E1E1E'],
-//   },{
-//     id: '8',
-//     title: 'Silk Evening Gown',
-//     type: 'Luxury Dress',
-//     price: 299.99,
-//     discountPrice: 249.99,
-//     rating: 4.9,
-//     description: 'Luxurious silk gown for special occasions.',
-//     stockStatus: 'Limited Stock',
-//     brand: 'LuxuryFashion',
-//     discountPercentage: 17,
-//     image: { uri: 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-//     colors: ['#6A0572', '#AB83A1', '#1E1E1E'],
-//   },
-// ];
 
 const banners = [
   {
@@ -270,12 +157,17 @@ const isInWishlist = (productId) => wishlist.some(item => item.id === productId)
       activeOpacity={0.9}
     >
       <View style={styles.imageContainer}>
-        <Image source={item.image} style={styles.image} resizeMode="cover" />
+         {/* For Android Emulator → use http://10.0.2.2:3001 */}
+        <Image source={{ uri: `http://localhost:3001${item.image}` }}
+        style={styles.image} 
+        resizeMode="cover" />
+
         {/* {item.discountPercentage > 0 && (
           <View style={styles.discountBadge}>
             <Text style={styles.discountText}>-{item.discountPercentage}%</Text>
           </View>
         )} */}
+
         <TouchableOpacity
           style={styles.heartIcon}
           onPress={(e) => {

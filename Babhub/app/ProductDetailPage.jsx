@@ -128,9 +128,10 @@ const ProductDetailPage = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Product Image */}
         <View style={styles.imageContainer}>
+
           {product.image ? (
             <Image
-              source={{ uri: product.image }}
+              source={{ uri: `http://localhost:3001${product.image}` }}
               style={styles.productImage}
               resizeMode="contain"
             />

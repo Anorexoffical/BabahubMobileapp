@@ -1,14 +1,41 @@
 const express = require('express');
 const router = express.Router();
-const Product = require('../Models/ProductModel'); // Import Product model
+const Product = require('../Models/ProductModel'); 
 
-router.post('/', async (req, res) => {
+const multer = require('multer');
+const path = require('path');
+
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/products');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // unique filename
+  }
+});
+
+const upload = multer({ storage });
+
+// ADD product with image
+router.post('/', upload.single('mainImage'), async (req, res) => {
   try {
-    const product = new Product(req.body);
+    const { name, description, brand, category, isFeatured, variants } = req.body;
+
+    const product = new Product({
+      name,
+      description,
+      brand,
+      category,
+      isFeatured,
+      variants: JSON.parse(variants), 
+      image: req.file ? `/uploads/products/${req.file.filename}` : null
+    });
+
     const savedProduct = await product.save();
-    console.log(`Product added successfully: ${savedProduct.name}`);
     res.status(201).json(savedProduct);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });

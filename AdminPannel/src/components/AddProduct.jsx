@@ -83,11 +83,45 @@ const AddProduct = ({ show, onHide }) => {
   };
 
 
-  const handleSubmit = async (e) => {
+//   const handleSubmit = async (e) => {
+//   e.preventDefault();
+//   setIsSubmitting(true);
+//   try {
+//     const response = await axios.post('http://localhost:3001/api/products', newProduct);
+
+//     console.log('Product added:', response.data);
+//     setSuccessMessage(`Product "${response.data.name}" saved successfully!`);
+
+//     setTimeout(() => {
+//       setSuccessMessage('');
+//       onHide();
+//       resetForm();
+//     }, 2000);
+//   } catch (error) {
+//     console.error('Error saving product:', error);
+//     alert('Error adding product. Please try again.');
+//   } finally {
+//     setIsSubmitting(false);
+//   }
+// };
+
+const handleSubmit = async (e) => {
   e.preventDefault();
   setIsSubmitting(true);
+
   try {
-    const response = await axios.post('http://localhost:3001/api/products', newProduct);
+    const formData = new FormData();
+    formData.append('name', newProduct.name);
+    formData.append('description', newProduct.description);
+    formData.append('brand', newProduct.brand);
+    formData.append('category', newProduct.category);
+    formData.append('isFeatured', newProduct.isFeatured);
+    formData.append('mainImage', newProduct.mainImage);
+    formData.append('variants', JSON.stringify(newProduct.variants));
+
+    const response = await axios.post('http://localhost:3001/api/products', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
 
     console.log('Product added:', response.data);
     setSuccessMessage(`Product "${response.data.name}" saved successfully!`);
