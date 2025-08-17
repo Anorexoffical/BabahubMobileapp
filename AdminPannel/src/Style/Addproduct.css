@@ -1,0 +1,22 @@
+/* src/Style/AddProductModal.css */
+.variant-card {
+  background-color: #f8f9fa;
+  transition: all 0.2s;
+}
+
+.variant-card:hover {
+  background-color: #f1f5f9;
+}
+
+.form-control-color {
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.color-dot {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #dee2e6;
+}
