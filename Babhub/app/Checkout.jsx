@@ -18,14 +18,12 @@ const Checkout = () => {
   const router = useRouter();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
-
   // Form state
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
-
   const [errors, setErrors] = useState({});
 
   // Load cart items
@@ -54,7 +52,6 @@ const Checkout = () => {
   // Handle checkout submission
   const handleCheckout = async () => {
     const newErrors = {};
-
     if (!email) newErrors.email = 'Email is required';
     if (emailError) newErrors.email = emailError;
     if (!name) newErrors.name = 'Name is required';
@@ -142,7 +139,6 @@ const Checkout = () => {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Customer Information</Text>
-
         <View style={styles.row}>
           <View style={styles.halfInput}>
             <TextInput
