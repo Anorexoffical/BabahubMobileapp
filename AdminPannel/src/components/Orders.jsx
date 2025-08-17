@@ -15,6 +15,8 @@ import {
 import { Table, Pagination, Badge, Form, Button, Card, Alert } from 'react-bootstrap';
 import Topbar from './Topbar'; // Add Topbar import
 import '../Style/Orders.css';
+import axios from 'axios';
+
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -33,89 +35,12 @@ const Orders = () => {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 800));
         
-        // Mock data
-        const mockOrders = [
-          {
-            id: 'ORD-1001',
-            customer: { id: 1, name: 'John Doe', email: 'john@example.com' },
-            date: '2023-07-15',
-            amount: 125.50,
-            status: 'completed',
-            items: [
-              { id: 1, name: 'Wireless Headphones', price: 79.99, quantity: 1 },
-              { id: 2, name: 'Phone Case', price: 15.99, quantity: 2 }
-            ],
-            shipping: {
-              address: '123 Main St, New York, NY 10001',
-              carrier: 'FedEx',
-              tracking: 'FX123456789'
-            }
-          },
-          {
-            id: 'ORD-1002',
-            customer: { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
-            date: '2023-07-18',
-            amount: 89.99,
-            status: 'shipped',
-            items: [
-              { id: 3, name: 'Smart Watch', price: 89.99, quantity: 1 }
-            ],
-            shipping: {
-              address: '456 Oak Ave, Los Angeles, CA 90001',
-              carrier: 'UPS',
-              tracking: '1Z123456789'
-            }
-          },
-          {
-            id: 'ORD-1003',
-            customer: { id: 3, name: 'Robert Johnson', email: 'robert@example.com' },
-            date: '2023-07-20',
-            amount: 210.75,
-            status: 'processing',
-            items: [
-              { id: 4, name: 'Laptop', price: 899.99, quantity: 1 },
-              { id: 5, name: 'Mouse', price: 19.99, quantity: 1 },
-              { id: 6, name: 'Keyboard', price: 49.99, quantity: 1 }
-            ],
-            shipping: {
-              address: '789 Pine Rd, Chicago, IL 60601',
-              carrier: 'USPS',
-              tracking: '9400100000000000000000'
-            }
-          },
-          {
-            id: 'ORD-1004',
-            customer: { id: 4, name: 'Emily Davis', email: 'emily@example.com' },
-            date: '2023-07-22',
-            amount: 45.99,
-            status: 'pending',
-            items: [
-              { id: 7, name: 'Bluetooth Speaker', price: 45.99, quantity: 1 }
-            ],
-            shipping: {
-              address: '321 Elm St, Houston, TX 77001',
-              carrier: '',
-              tracking: ''
-            }
-          },
-          {
-            id: 'ORD-1005',
-            customer: { id: 5, name: 'Michael Wilson', email: 'michael@example.com' },
-            date: '2023-07-25',
-            amount: 299.99,
-            status: 'completed',
-            items: [
-              { id: 8, name: '4K TV', price: 299.99, quantity: 1 }
-            ],
-            shipping: {
-              address: '654 Maple Dr, Phoenix, AZ 85001',
-              carrier: 'FedEx',
-              tracking: 'FX987654321'
-            }
-          }
-        ];
+
+        const res = await axios.get('http://localhost:3001/api/order/get');
+
         
-        setOrders(mockOrders);
+        
+        setOrders(res.data);
       } catch (error) {
         console.error('Error fetching orders:', error);
       } finally {
@@ -129,11 +54,11 @@ const Orders = () => {
   // Filter and pagination logic
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.email.toLowerCase().includes(searchTerm.toLowerCase());
+      order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || order.deliveryStatus === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -157,7 +82,7 @@ const Orders = () => {
 
   const handleUpdateStatus = (orderId, newStatus) => {
     setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
+      order.orderID === orderId ? { ...order, deliveryStatus: newStatus } : order
     ));
     setSuccessMessage(`Order ${orderId} status updated to ${newStatus}`);
     setTimeout(() => setSuccessMessage(''), 3000);
@@ -246,22 +171,22 @@ const Orders = () => {
                 <tbody>
                   {currentOrders.length > 0 ? (
                     currentOrders.map(order => (
-                      <tr key={order.id}>
-                        <td>{order.id}</td>
+                      <tr key={order._id}>
+                        <td>{order.orderID}</td>
                         <td>
                           <div className="d-flex align-items-center">
                             <FiUser className="me-2" />
                             <div>
-                              <div>{order.customer.name}</div>
-                              <small className="text-muted">{order.customer.email}</small>
+                              <div>{order.name}</div>
+                              <small className="text-muted">{order.email}</small>
                             </div>
                           </div>
                         </td>
-                        <td>{new Date(order.date).toLocaleDateString()}</td>
-                        <td>${order.amount.toFixed(2)}</td>
+                        <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                        <td>${order.totalAmountAfterTax}</td>
                         <td>
-                          <Badge bg={getStatusVariant(order.status)}>
-                            {order.status}
+                          <Badge bg={getStatusVariant(order.deliveryStatus)}>
+                            {order.deliveryStatus}
                           </Badge>
                         </td>
                         <td>
@@ -273,29 +198,29 @@ const Orders = () => {
                           >
                             View
                           </Button>
-                          {order.status === 'pending' && (
+                          {order.deliveryStatus === 'pending' && (
                             <Button 
                               variant="outline-success" 
                               size="sm" 
-                              onClick={() => handleUpdateStatus(order.id, 'processing')}
+                              onClick={() => handleUpdateStatus(order.orderID, 'processing')}
                             >
                               Process
                             </Button>
                           )}
-                          {order.status === 'processing' && (
+                          {order.deliveryStatus === 'processing' && (
                             <Button 
                               variant="outline-info" 
                               size="sm" 
-                              onClick={() => handleUpdateStatus(order.id, 'shipped')}
+                              onClick={() => handleUpdateStatus(order.orderID, 'shipped')}
                             >
                               Ship
                             </Button>
                           )}
-                          {order.status === 'shipped' && (
+                          {order.deliveryStatus === 'shipped' && (
                             <Button 
                               variant="outline-success" 
                               size="sm" 
-                              onClick={() => handleUpdateStatus(order.id, 'completed')}
+                              onClick={() => handleUpdateStatus(order.orderID, 'completed')}
                             >
                               Complete
                             </Button>
@@ -350,7 +275,7 @@ const Orders = () => {
             <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title">Order Details - {selectedOrder.id}</h5>
+                  <h5 className="modal-title">Order Details - {selectedOrder.orderID}</h5>
                   <button type="button" className="btn-close" onClick={handleCloseDetails}></button>
                 </div>
                 <div className="modal-body">
@@ -362,8 +287,8 @@ const Orders = () => {
                           <span>Customer Information</span>
                         </Card.Header>
                         <Card.Body>
-                          <p><strong>Name:</strong> {selectedOrder.customer.name}</p>
-                          <p><strong>Email:</strong> {selectedOrder.customer.email}</p>
+                          <p><strong>Name:</strong> {selectedOrder.name}</p>
+                          <p><strong>Email:</strong> {selectedOrder.email}</p>
                         </Card.Body>
                       </Card>
                     </div>
@@ -374,13 +299,13 @@ const Orders = () => {
                           <span>Order Information</span>
                         </Card.Header>
                         <Card.Body>
-                          <p><strong>Date:</strong> {new Date(selectedOrder.date).toLocaleDateString()}</p>
+                          <p><strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleDateString()}</p>
                           <p><strong>Status:</strong> 
-                            <Badge bg={getStatusVariant(selectedOrder.status)} className="ms-2">
-                              {selectedOrder.status}
+                            <Badge bg={getStatusVariant(selectedOrder.deliveryStatus)} className="ms-2">
+                              {selectedOrder.deliveryStatus}
                             </Badge>
                           </p>
-                          <p><strong>Total:</strong> ${selectedOrder.amount.toFixed(2)}</p>
+                          <p><strong>Total:</strong> ${selectedOrder.totalAmountAfterTax}</p>
                         </Card.Body>
                       </Card>
                     </div>
@@ -397,22 +322,26 @@ const Orders = () => {
                           <tr>
                             <th>Product</th>
                             <th>Price</th>
+                            <th>Size</th>
+                            <th>Color</th>
                             <th>Quantity</th>
                             <th>Subtotal</th>
                           </tr>
                         </thead>
                         <tbody>
                           {selectedOrder.items.map(item => (
-                            <tr key={item.id}>
-                              <td>{item.name}</td>
-                              <td>${item.price.toFixed(2)}</td>
+                            <tr key={item._id}>
+                              <td>{item.title}</td>
+                              <td>${item.price}</td>
+                              <td>${item.size}</td>
+                              <td>${item.color}</td>
                               <td>{item.quantity}</td>
                               <td>${(item.price * item.quantity).toFixed(2)}</td>
                             </tr>
                           ))}
                           <tr>
                             <td colSpan="3" className="text-end"><strong>Total:</strong></td>
-                            <td><strong>${selectedOrder.amount.toFixed(2)}</strong></td>
+                            <td><strong>${selectedOrder.totalAmountAfterTax}</strong></td>
                           </tr>
                         </tbody>
                       </Table>
@@ -425,11 +354,11 @@ const Orders = () => {
                       <span>Shipping Information</span>
                     </Card.Header>
                     <Card.Body>
-                      <p><strong>Address:</strong> {selectedOrder.shipping.address}</p>
+                      <p><strong>Address:</strong> {selectedOrder.address}</p>
                       {selectedOrder.status !== 'pending' && (
                         <>
-                          <p><strong>Carrier:</strong> {selectedOrder.shipping.carrier}</p>
-                          <p><strong>Tracking Number:</strong> {selectedOrder.shipping.tracking}</p>
+                          <p><strong>Carrier:</strong> {"FX"}</p>
+                          <p><strong>Tracking Number:</strong> {"NT987578"}</p>
                         </>
                       )}
                       {selectedOrder.status === 'pending' && (
@@ -444,7 +373,7 @@ const Orders = () => {
                   </Button>
                   {selectedOrder.status === 'pending' && (
                     <Button variant="success" onClick={() => {
-                      handleUpdateStatus(selectedOrder.id, 'processing');
+                      handleUpdateStatus(selectedOrder._id, 'processing');
                       handleCloseDetails();
                     }}>
                       <FiCheckCircle className="me-1" /> Process Order
@@ -452,7 +381,7 @@ const Orders = () => {
                   )}
                   {selectedOrder.status === 'processing' && (
                     <Button variant="info" onClick={() => {
-                      handleUpdateStatus(selectedOrder.id, 'shipped');
+                      handleUpdateStatus(selectedOrder._id, 'shipped');
                       handleCloseDetails();
                     }}>
                       <FiTruck className="me-1" /> Mark as Shipped
@@ -460,7 +389,7 @@ const Orders = () => {
                   )}
                   {selectedOrder.status === 'shipped' && (
                     <Button variant="success" onClick={() => {
-                      handleUpdateStatus(selectedOrder.id, 'completed');
+                      handleUpdateStatus(selectedOrder._id, 'completed');
                       handleCloseDetails();
                     }}>
                       <FiCheckCircle className="me-1" /> Mark as Completed
