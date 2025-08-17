@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FiSearch,
   FiPlus,
@@ -6,12 +6,14 @@ import {
   FiChevronRight,
   FiMoreHorizontal
 } from 'react-icons/fi';
-import { Modal, Button, Spinner, Table, Badge, Alert } from 'react-bootstrap';
+import { Modal, Button, Table, Badge, Alert } from 'react-bootstrap';
 import AddProductModal from './AddProduct.jsx';
 import '../Style/ProductTable.css';
 import Topbar from './Topbar.jsx';
+import axios from 'axios';
 
 const ProductTable = () => {
+  const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -20,56 +22,10 @@ const ProductTable = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
-  
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: 'Nike Air Max',
-      description: 'Comfortable running shoes',
-      brand: 'Nike',
-      category: 'Footwear',
-      variants: [
-        {
-          color: 'Red',
-          colorCode: '#FF0000',
-          images: [],
-          sizes: [
-            { size: 'S', stock: 15, price: 120 },
-            { size: 'M', stock: 20, price: 120 }
-          ]
-        },
-        {
-          color: 'Blue',
-          colorCode: '#2563eb',
-          images: [],
-          sizes: [
-            { size: 'S', stock: 8, price: 120 },
-            { size: 'L', stock: 12, price: 125 }
-          ]
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Adidas Ultraboost',
-      description: 'Premium running shoes',
-      brand: 'Adidas',
-      category: 'Footwear',
-      variants: [
-        {
-          color: 'Black',
-          colorCode: '#000000',
-          images: [],
-          sizes: [
-            { size: 'M', stock: 5, price: 180 },
-            { size: 'L', stock: 3, price: 180 }
-          ]
-        }
-      ]
-    }
-  ]);
 
   useEffect(() => {
+    fetchProducts();
+
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
@@ -77,25 +33,29 @@ const ProductTable = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const fetchProducts = async () => {
+    try {
+      const res = await axios.get('http://localhost:3001/api/products');
+      setProducts(res.data);
+    } catch (err) {
+      console.error('Failed to fetch products:', err);
+    }
+  };
+
   const productsPerPage = 8;
 
-  const handleAddProduct = (product) => {
+  const handleAddProduct = async (product) => {
     setIsSubmitting(true);
-
-    setTimeout(() => {
-      const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-      const addedProduct = {
-        ...product,
-        id: newId,
-        date: new Date().toLocaleDateString()
-      };
-
-      setProducts([...products, addedProduct]);
-      setIsSubmitting(false);
+    try {
+      const res = await axios.post('http://localhost:5000/api/products', product);
+      setProducts([...products, res.data]);
       setShowAddModal(false);
-      setSuccessMessage(`Product "${addedProduct.name}" added successfully!`);
+      setSuccessMessage(`Product "${res.data.name}" added successfully!`);
       setTimeout(() => setSuccessMessage(''), 3000);
-    }, 1000);
+    } catch (err) {
+      console.error('Error adding product:', err);
+    }
+    setIsSubmitting(false);
   };
 
   const calculateTotalStock = (variants) => {
@@ -138,7 +98,7 @@ const ProductTable = () => {
   return (
     <>
       <Topbar />
-      
+
       <div className="product-dashboard">
         {successMessage && (
           <Alert variant="success" onClose={() => setSuccessMessage('')} dismissible className="fade-in">
@@ -153,6 +113,7 @@ const ProductTable = () => {
           isSubmitting={isSubmitting}
         />
 
+        {/* Product Details Modal */}
         <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" centered>
           <Modal.Header closeButton className="bg-light">
             <Modal.Title className="fw-bold">Product Details</Modal.Title>
@@ -174,6 +135,16 @@ const ProductTable = () => {
                   </Badge>
                 </div>
                 
+                {selectedProduct.image && (
+                  <div className="mb-3">
+                    <img 
+                      src={selectedProduct.image} 
+                      alt={selectedProduct.name} 
+                      style={{ maxWidth: '200px', borderRadius: '8px' }} 
+                    />
+                  </div>
+                )}
+
                 <h5 className="fw-bold mb-3">Available Variants</h5>
                 <div className="table-responsive">
                   <Table bordered hover className="mb-0">
@@ -221,6 +192,7 @@ const ProductTable = () => {
           </Modal.Footer>
         </Modal>
 
+        {/* Dashboard Header */}
         <div className={`dashboard-header ${isScrolled ? 'scrolled' : ''}`}>
           <div className="container-fluid">
             <div className="row align-items-center mb-3 mb-md-0">
@@ -288,6 +260,7 @@ const ProductTable = () => {
           </div>
         </div>
 
+        {/* Table */}
         <div className="container-fluid mt-4">
           <div className="card">
             <div className="card-body p-0">
@@ -306,11 +279,13 @@ const ProductTable = () => {
                   <tbody>
                     {currentProducts.length > 0 ? (
                       currentProducts.map(product => (
-                        <tr key={product.id} className="align-middle">
+                        <tr key={product._id} className="align-middle">
                           <td>
                             <div className="d-flex flex-column">
                               <strong className="product-name">{product.name}</strong>
-                              <small className="text-muted">{product.description.substring(0, 50)}</small>
+                              <small className="text-muted">
+                                {product.description ? product.description.substring(0, 50) : ''}
+                              </small>
                             </div>
                           </td>
                           <td>
