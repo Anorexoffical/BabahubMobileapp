@@ -1,35 +1,35 @@
-import { View, Text,TouchableOpacity,StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+// app/components/Mybutton.jsx
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
-import React from 'react'
-
-const Mybutton = ({btntitle,onPress}) => {
-    
-
+const Mybutton = ({ btntitle, onPress, disabled = false }) => {
   return (
-    <View>
-         <TouchableOpacity style={styles.loginButton} onPress={onPress}>  
-                <Text style={styles.loginText} >{btntitle}</Text>
-              </TouchableOpacity>
-    </View>
-  )
-}
-
+    <TouchableOpacity
+      style={[styles.button, disabled && styles.disabledButton]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Text style={styles.buttonText}>{btntitle}</Text>
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
-    loginButton: {
-        backgroundColor: '#007BFF',
-        paddingVertical: 12,
-        paddingHorizontal: 134,
-        borderRadius: 25,
-        marginTop: 16,
-    },
-    loginText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
+  button: {
+    backgroundColor: '#3366FF',
+    paddingVertical: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
 
-export default Mybutton
+export default Mybutton;

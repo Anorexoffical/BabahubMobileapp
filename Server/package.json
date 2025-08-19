@@ -12,14 +12,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-<<<<<<< HEAD
     "axios": "^1.11.0",
-=======
->>>>>>> a928867f5fcbca21df0c09f23ef715090f8c23ab
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "mongoose": "^8.17.1",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "ngrok": "^5.0.0-beta.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
