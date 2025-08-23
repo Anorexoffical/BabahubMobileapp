@@ -7,45 +7,108 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import Mybutton from '../components/Mybutton';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const ForgetPassword = () => {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [dob, setDob] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [date, setDate] = useState(new Date());
   const [emailFocus, setEmailFocus] = useState(false);
   const [dobFocus, setDobFocus] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const handleRecoverPassword = () => {
+  // Format date to DD/MM/YYYY
+  const formatDate = (date) => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Handle date change from picker
+  const onChangeDate = (event, selectedDate) => {
+    setShowDatePicker(Platform.OS === 'ios'); // Keep open on iOS, close on Android
+    if (selectedDate) {
+      setDate(selectedDate);
+      setDob(formatDate(selectedDate));
+    }
+  };
+
+  // Show date picker
+  const showDatepicker = () => {
+    setShowDatePicker(true);
+  };
+
+  // In a real app, this would be an API call to your backend
+  const verifyCredentials = async (email, dob) => {
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Mock verification - for testing, accept "123" as email and "10/03/2003" as DOB
+    const validCredentials = 
+      (email === 'user@example.com' && dob === '01/01/1990') || 
+      (email === '123' && dob === '10/03/2003');
+    
+    return validCredentials;
+  };
+
+  const handleRecoverPassword = async () => {
     // Simple validation
     if (!email || !dob) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
+    // Validate email format (skip if using test value "123")
+    if (email !== '123') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        Alert.alert('Error', 'Please enter a valid email address');
+        return;
+      }
     }
 
     // Validate date format (simple check)
-    if (dob.length < 6) {
+    if (dob.length < 8) {
       Alert.alert('Error', 'Please enter a valid date of birth');
       return;
     }
 
-    // In a real app, you would call your API here
-    // For demo purposes, we'll generate a mock password
-    const recoveredPassword = 'Recovered@123';
-    setPassword(recoveredPassword);
-    setShowPassword(true);
+    setLoading(true);
+    
+    try {
+      // Verify credentials (this would be an API call in a real app)
+      const isValid = await verifyCredentials(email, dob);
+      
+      if (isValid) {
+        // Navigate to reset password page with email as parameter
+        router.push({
+          pathname: '/ResetPassword',
+          params: { email }
+        });
+      } else {
+        Alert.alert(
+          'Verification Failed',
+          'The email and date of birth combination is incorrect. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'An error occurred during verification. Please try again later.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
@@ -71,36 +134,46 @@ const ForgetPassword = () => {
         underlineColorAndroid="transparent"
         selectionColor="#3366FF"
         autoCapitalize="none"
+        editable={!loading}
       />
 
       <Text style={styles.label}>Date of Birth</Text>
-      <TextInput
-        placeholder="DD/MM/YYYY"
-        style={[styles.input, dobFocus && styles.inputActive]}
-        value={dob}
-        onChangeText={setDob}
-        onFocus={() => setDobFocus(true)}
-        onBlur={() => setDobFocus(false)}
-        underlineColorAndroid="transparent"
-        selectionColor="#3366FF"
-      />
-
-      <Mybutton btntitle="Recover Password" onPress={handleRecoverPassword} />
-
-      {showPassword && (
-        <View style={styles.passwordContainer}>
-          <Text style={styles.passwordLabel}>Your Password:</Text>
-          <View style={styles.passwordDisplay}>
-            <Text style={styles.passwordText}>{password}</Text>
-          </View>
-          <Text style={styles.note}>
-            Please change your password after logging in for security reasons.
-          </Text>
+      <TouchableOpacity onPress={showDatepicker} disabled={loading}>
+        <View pointerEvents="none">
+          <TextInput
+            placeholder="DD/MM/YYYY"
+            style={[styles.input, dobFocus && styles.inputActive]}
+            value={dob}
+            onFocus={() => setDobFocus(true)}
+            onBlur={() => setDobFocus(false)}
+            underlineColorAndroid="transparent"
+            selectionColor="#3366FF"
+            editable={false}
+          />
         </View>
+      </TouchableOpacity>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onChangeDate}
+          maximumDate={new Date()}
+          textColor="#000"
+        />
       )}
 
-      <TouchableOpacity onPress={handleBackToLogin}>
-        <Text style={styles.backToLogin}>Back to Login</Text>
+      {loading ? (
+        <ActivityIndicator size="large" color="#3366FF" style={styles.loader} />
+      ) : (
+        <Mybutton btntitle="Recover Password" onPress={handleRecoverPassword} />
+      )}
+
+      <TouchableOpacity onPress={handleBackToLogin} disabled={loading}>
+        <Text style={[styles.backToLogin, loading && styles.disabledText]}>
+          Back to Login
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -145,38 +218,8 @@ const styles = StyleSheet.create({
   inputActive: {
     borderColor: '#3366FF',
   },
-  passwordContainer: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  passwordLabel: {
-    fontWeight: '600',
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 10,
-  },
-  passwordDisplay: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    marginBottom: 10,
-  },
-  passwordText: {
-    fontSize: 16,
-    color: '#28a745',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  note: {
-    fontSize: 14,
-    color: '#6c757d',
-    fontStyle: 'italic',
+  loader: {
+    marginVertical: 20,
   },
   backToLogin: {
     color: '#3366FF',
@@ -184,6 +227,9 @@ const styles = StyleSheet.create({
     marginTop: 30,
     fontWeight: '600',
     fontSize: 14,
+  },
+  disabledText: {
+    opacity: 0.5,
   },
 });
 
