@@ -13,6 +13,8 @@ app.use(express.urlencoded({ extended: true }));  // <-- needed for PayFast noti
 const productRoutes = require('./Routes/ProductRoute');
 const notifyRoutes = require('./Routes/Payment/notifyurl.js');
 const orderRoutes = require('./Routes/OrderRoute.js');
+const UserRoutes = require("./Routes/UserRoute.js");
+
 
 
 
@@ -21,6 +23,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/products', productRoutes);
 app.use('/api/order', orderRoutes);
 app.use('/payment', notifyRoutes);
+app.use("/api/users", UserRoutes);
+
 
 
 mongoose.connect("mongodb://127.0.0.1:27017/Babhub") 

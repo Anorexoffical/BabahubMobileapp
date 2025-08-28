@@ -13,6 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../contexts/AuthContext';
+
+
 
 const { width } = Dimensions.get('window');
 
@@ -20,7 +23,7 @@ const { width } = Dimensions.get('window');
 // Sample user data
 const defaultUser = {
   isLoggedIn: false,
-  name: 'Guest',
+  name: 'Guest' ,
   profileImage: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
 };
 
@@ -64,6 +67,9 @@ const BannerItem = ({ item, router }) => (
 );
 
 const HomeScreen = () => {
+    const { user1 } = useAuth();
+
+
   const [cartItems, setCartItems] = useState(3);
   const [wishlist, setWishlist] = useState([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
@@ -78,7 +84,10 @@ const HomeScreen = () => {
   {
     const fetchFeaturedProducts = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/products/featured');
+      // const response = await fetch('http://localhost:3001/api/products/featured');
+      const response = await fetch('https://f204f8e09b51.ngrok-free.app/api/products/featured');
+
+      
       const data = await response.json();
       setProducts(data);
     } catch (error) {
@@ -158,7 +167,10 @@ const isInWishlist = (productId) => wishlist.some(item => item.id === productId)
     >
       <View style={styles.imageContainer}>
          {/* For Android Emulator → use http://10.0.2.2:3001 */}
-        <Image source={{ uri: `http://localhost:3001${item.image}` }}
+        {/* <Image source={{ uri: `http://localhost:3001${item.image}` }} */}
+        <Image source={{ uri: `https://f3ae168b7043.ngrok-free.app${item.image}` }}
+
+        
         style={styles.image} 
         resizeMode="cover" />
 
@@ -225,7 +237,7 @@ const isInWishlist = (productId) => wishlist.some(item => item.id === productId)
             </TouchableOpacity>
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcome}>Hello, Welcome 👋</Text>
-              <Text style={styles.username}>{user.name}</Text>
+              <Text style={styles.username}>{user1?.name || 'Guest'}</Text>
             </View>
           </View>
           <TouchableOpacity 

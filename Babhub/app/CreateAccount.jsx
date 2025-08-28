@@ -28,40 +28,50 @@ const CreateAccount = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
-  const handleCreateAccount = () => {
-    // Validation
-    if (!name || !email || !dob || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+  const handleCreateAccount = async () => {
+  // Validation (same as before)
+  if (!name || !email || !dob || !password || !confirmPassword) {
+    Alert.alert('Error', 'Please fill in all fields');
+    return;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    Alert.alert('Error', 'Please enter a valid email address');
+    return;
+  }
+  if (password.length < 6) {
+    Alert.alert('Error', 'Password must be at least 6 characters');
+    return;
+  }
+  if (password !== confirmPassword) {
+    Alert.alert('Error', 'Passwords do not match');
+    return;
+  }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
-      return;
-    }
+  try {
+    // const response = await fetch("http://localhost:3001/api/users/register", { // use 10.0.2.2 for Android emulator, localhost for iOS
+       const response = await fetch("https://f3ae168b7043.ngrok-free.app/api/users/register", { // use 10.0.2.2 for Android emulator, localhost for iOS
+  
+     
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, dob, password }),
+    });
 
-    // Validate password length
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
+    const data = await response.json();
 
-    // Check if passwords match
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
+    if (data.ok) {
+      Alert.alert("Success", "Account created successfully!", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } else {
+      Alert.alert("Error", data.message || "Something went wrong");
     }
+  } catch (err) {
+    Alert.alert("Error", "Failed to connect to server");
+  }
+};
 
-    // In a real app, you would call your API here to create the account
-    Alert.alert('Success', 'Account created successfully!', [
-      {
-        text: 'OK',
-        onPress: () => router.back(), // Go back to login after success
-      },
-    ]);
-  };
 
   const handleBackToLogin = () => {
     router.back();

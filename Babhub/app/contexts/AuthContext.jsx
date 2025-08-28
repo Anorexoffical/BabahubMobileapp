@@ -1,3 +1,5 @@
+
+
 // app/contexts/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,21 +12,19 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
-  const [userEmail, setUserEmail] = useState(null);
+  const [user, setUser] = useState(null); // 👈 store the whole user object
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on app start
     const bootstrapAsync = async () => {
-      let token, email;
       try {
-        token = await AsyncStorage.getItem('userToken');
-        email = await AsyncStorage.getItem('userEmail');
+        const token = await AsyncStorage.getItem('userToken');
+        const userJson = await AsyncStorage.getItem('user'); // 👈 retrieve user
+        setUserToken(token);
+        setUser(userJson ? JSON.parse(userJson) : null);
       } catch (e) {
         console.error('Failed to restore auth data', e);
       }
-      setUserToken(token);
-      setUserEmail(email);
       setIsLoading(false);
     };
 
@@ -32,28 +32,28 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const authContext = {
-    signIn: async (token, email) => {
+    signIn: async (token, userData) => { // 👈 accept full user object
       setUserToken(token);
-      setUserEmail(email);
+      setUser(userData);
       try {
         await AsyncStorage.setItem('userToken', token);
-        await AsyncStorage.setItem('userEmail', email);
+        await AsyncStorage.setItem('user', JSON.stringify(userData)); // 👈 save user
       } catch (e) {
         console.error('Failed to save auth data', e);
       }
     },
     signOut: async () => {
       setUserToken(null);
-      setUserEmail(null);
+      setUser(null);
       try {
         await AsyncStorage.removeItem('userToken');
-        await AsyncStorage.removeItem('userEmail');
+        await AsyncStorage.removeItem('user');
       } catch (e) {
         console.error('Failed to remove auth data', e);
       }
     },
     userToken,
-    userEmail,
+    user,
     isLoading,
   };
 

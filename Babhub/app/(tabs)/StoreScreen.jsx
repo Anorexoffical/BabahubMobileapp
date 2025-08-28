@@ -56,7 +56,10 @@ const StoreScreen = () => {
 
   // Fetching from backend
   useEffect(() => {
-    fetch('http://localhost:3001/api/products') 
+    // fetch('http://localhost:3001/api/products') 
+        fetch('https://f3ae168b7043.ngrok-free.app/api/products') 
+
+    
       .then(res => res.json())
       .then(data => setProducts(data))
       .catch(err => console.error('Error fetching products:', err));
@@ -116,7 +119,9 @@ const StoreScreen = () => {
             color={wishlist.includes(item._id) ? "#ff4757" : "#000"}
           />
         </TouchableOpacity>
-        <Image source={{ uri: `http://localhost:3001${item.image}` }}
+        {/* <Image source={{ uri: `http://localhost:3001${item.image}` }} */}
+         <Image source={{ uri: `https://f3ae168b7043.ngrok-free.app${item.image}` }}
+
         style={styles.productImage} />
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
         <Text style={styles.productBrand}>{item.brand}</Text>

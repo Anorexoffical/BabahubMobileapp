@@ -11,9 +11,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as ClipboardAPI from 'expo-clipboard';
 import Toast from 'react-native-toast-message';
+import { useAuth } from './contexts/AuthContext';
+
 
 const ProfileDetailsScreen = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
+  
 
   const handleCopy = async (value) => {
     await ClipboardAPI.setStringAsync(value);
@@ -45,18 +49,18 @@ const ProfileDetailsScreen = () => {
       {/* Profile Info */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Profile Information</Text>
-        <InfoItem label="Name" value="ali khan" />
-        <InfoItem label="Username" value="pthaniyaa" />
+        <InfoItem label="Name" value={user?.name || "N/A"} />
+        <InfoItem label="Email" value={user?.email || "N/A"} />
       </View>
 
       {/* Personal Info */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Personal Information</Text>
-        <InfoItem label="User ID" value="45689" copyable onCopy={handleCopy} />
-        <InfoItem label="E-mail" value="hafizalihaider2491@gmail.com" />
-        <InfoItem label="Phone Number" value="0845000000" />
-        <InfoItem label="Gender" value="Male" />
-        <InfoItem label="Date of Birth" value="1 Jan, 1900" />
+        <InfoItem label="User ID" value={user?._id || "N/A"} copyable onCopy={handleCopy} />
+        <InfoItem label="E-mail" value={user?.email || "N/A"} />
+        <InfoItem label="Phone Number" value={user?.phoneNO || "N/A"} />
+        <InfoItem label="Gender" value={user?.gender || "N/A"} />
+        <InfoItem label="Date of Birth" value={user?.dob || "N/A"} />
       </View>
     </ScrollView>
   );

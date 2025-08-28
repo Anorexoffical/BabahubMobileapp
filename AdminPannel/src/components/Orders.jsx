@@ -13,10 +13,9 @@ import {
   FiFilter
 } from 'react-icons/fi';
 import { Table, Pagination, Badge, Form, Button, Card, Alert } from 'react-bootstrap';
-import Topbar from './Topbar'; // Add Topbar import
+import Topbar from './Topbar';
 import '../Style/Orders.css';
 import axios from 'axios';
-
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -30,31 +29,26 @@ const Orders = () => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-
-        const res = await axios.get('http://localhost:3001/api/order/get');
-
-        
-        
-        setOrders(res.data);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
   }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get('http://localhost:3001/api/order/get');
+      setOrders(res.data);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter and pagination logic
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
       order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.orderID.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.email.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -80,20 +74,36 @@ const Orders = () => {
     setSelectedOrder(null);
   };
 
-  const handleUpdateStatus = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.orderID === orderId ? { ...order, deliveryStatus: newStatus } : order
-    ));
-    setSuccessMessage(`Order ${orderId} status updated to ${newStatus}`);
-    setTimeout(() => setSuccessMessage(''), 3000);
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      const response = await axios.put(`http://localhost:3001/api/order/update-status/${orderId}`, {
+        status: newStatus
+      });
+      
+      // Update local state with the updated order
+      setOrders(orders.map(order => 
+        order.orderID === orderId ? response.data : order
+      ));
+      
+      setSuccessMessage(`Order ${orderId} status updated to ${newStatus}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // If we're viewing details, update the selected order as well
+      if (selectedOrder && selectedOrder.orderID === orderId) {
+        setSelectedOrder(response.data);
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      setSuccessMessage(`Failed to update order status: ${error.response?.data?.error || error.message}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
   };
 
   const getStatusVariant = (status) => {
     switch(status) {
-      case 'completed': return 'success';
-      case 'shipped': return 'primary';
-      case 'processing': return 'warning';
-      case 'pending': return 'secondary';
+      case 'Completed': return 'success';
+      case 'Shipped': return 'primary';
+      case 'Processing': return 'secondary';
       default: return 'light';
     }
   };
@@ -137,10 +147,9 @@ const Orders = () => {
                   style={{ width: '150px' }}
                 >
                   <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="completed">Completed</option>
+                  <option value="Processing">Processing</option>
+                  <option value="Shipped">Shipped</option>
+                  <option value="Completed">Completed</option>
                 </Form.Select>
               </div>
             </div>
@@ -198,29 +207,20 @@ const Orders = () => {
                           >
                             View
                           </Button>
-                          {order.deliveryStatus === 'pending' && (
+                          {order.deliveryStatus === 'Processing' && (
                             <Button 
                               variant="outline-success" 
                               size="sm" 
-                              onClick={() => handleUpdateStatus(order.orderID, 'processing')}
-                            >
-                              Process
-                            </Button>
-                          )}
-                          {order.deliveryStatus === 'processing' && (
-                            <Button 
-                              variant="outline-info" 
-                              size="sm" 
-                              onClick={() => handleUpdateStatus(order.orderID, 'shipped')}
+                              onClick={() => handleUpdateStatus(order.orderID, 'Shipped')}
                             >
                               Ship
                             </Button>
                           )}
-                          {order.deliveryStatus === 'shipped' && (
+                          {order.deliveryStatus === 'Shipped' && (
                             <Button 
-                              variant="outline-success" 
+                              variant="outline-info" 
                               size="sm" 
-                              onClick={() => handleUpdateStatus(order.orderID, 'completed')}
+                              onClick={() => handleUpdateStatus(order.orderID, 'Completed')}
                             >
                               Complete
                             </Button>
@@ -289,6 +289,7 @@ const Orders = () => {
                         <Card.Body>
                           <p><strong>Name:</strong> {selectedOrder.name}</p>
                           <p><strong>Email:</strong> {selectedOrder.email}</p>
+                          <p><strong>Phone:</strong> {selectedOrder.phoneNO}</p>
                         </Card.Body>
                       </Card>
                     </div>
@@ -333,37 +334,18 @@ const Orders = () => {
                             <tr key={item._id}>
                               <td>{item.title}</td>
                               <td>${item.price}</td>
-                              <td>${item.size}</td>
-                              <td>${item.color}</td>
+                              <td>{item.size}</td>
+                              <td>{item.color}</td>
                               <td>{item.quantity}</td>
                               <td>${(item.price * item.quantity).toFixed(2)}</td>
                             </tr>
                           ))}
                           <tr>
-                            <td colSpan="3" className="text-end"><strong>Total:</strong></td>
+                            <td colSpan="5" className="text-end"><strong>Total:</strong></td>
                             <td><strong>${selectedOrder.totalAmountAfterTax}</strong></td>
                           </tr>
                         </tbody>
                       </Table>
-                    </Card.Body>
-                  </Card>
-
-                  <Card>
-                    <Card.Header className="d-flex align-items-center">
-                      <FiTruck className="me-2" />
-                      <span>Shipping Information</span>
-                    </Card.Header>
-                    <Card.Body>
-                      <p><strong>Address:</strong> {selectedOrder.address}</p>
-                      {selectedOrder.status !== 'pending' && (
-                        <>
-                          <p><strong>Carrier:</strong> {"FX"}</p>
-                          <p><strong>Tracking Number:</strong> {"NT987578"}</p>
-                        </>
-                      )}
-                      {selectedOrder.status === 'pending' && (
-                        <p className="text-muted">Shipping information will be available once order is processed</p>
-                      )}
                     </Card.Body>
                   </Card>
                 </div>
@@ -371,25 +353,17 @@ const Orders = () => {
                   <Button variant="secondary" onClick={handleCloseDetails}>
                     Close
                   </Button>
-                  {selectedOrder.status === 'pending' && (
+                  {selectedOrder.deliveryStatus === 'Processing' && (
                     <Button variant="success" onClick={() => {
-                      handleUpdateStatus(selectedOrder._id, 'processing');
-                      handleCloseDetails();
-                    }}>
-                      <FiCheckCircle className="me-1" /> Process Order
-                    </Button>
-                  )}
-                  {selectedOrder.status === 'processing' && (
-                    <Button variant="info" onClick={() => {
-                      handleUpdateStatus(selectedOrder._id, 'shipped');
+                      handleUpdateStatus(selectedOrder.orderID, 'Shipped');
                       handleCloseDetails();
                     }}>
                       <FiTruck className="me-1" /> Mark as Shipped
                     </Button>
                   )}
-                  {selectedOrder.status === 'shipped' && (
-                    <Button variant="success" onClick={() => {
-                      handleUpdateStatus(selectedOrder._id, 'completed');
+                  {selectedOrder.deliveryStatus === 'Shipped' && (
+                    <Button variant="info" onClick={() => {
+                      handleUpdateStatus(selectedOrder.orderID, 'Completed');
                       handleCloseDetails();
                     }}>
                       <FiCheckCircle className="me-1" /> Mark as Completed

@@ -1,432 +1,362 @@
-import React, { useState } from 'react';
-import {
-  FiBarChart2,
-  FiDollarSign,
-  FiShoppingBag,
-  FiUsers,
-  FiTrendingUp,
-  FiTrendingDown,
-  FiStar,
-  FiShoppingCart,
-  FiUser,
-  FiPieChart,
-  FiCreditCard,
-  FiPackage,
-  FiRepeat,
-  FiCalendar,
-  FiDownload
-} from 'react-icons/fi';
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Table,
-  Button,
-  Badge,
-  ProgressBar,
-  Dropdown,
-} from 'react-bootstrap';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import '../Style/Reports.css';
+import axios from 'axios';
+import { useState, useEffect } from "react";
+import { FiDollarSign, FiTrendingUp, FiShoppingCart, FiClock, FiCreditCard, FiBox, FiCalendar, FiSearch, FiAlertTriangle, FiFilter } from 'react-icons/fi';
+import "../Style/Reports.css";
 
-// Mini sparkline for trends
-const MiniSparkline = ({ data, color, positive }) => {
-  const maxValue = Math.max(...data);
-  const points = data.map((value, i) => ({
-    x: (i / (data.length - 1)) * 100,
-    y: 100 - (value / maxValue) * 100
-  }));
-  const pathData = points.map((point, i) =>
-    `${i === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
-  ).join(' ');
-  return (
-    <div className="mini-sparkline">
-      <svg viewBox="0 0 100 100">
-        <path
-          d={pathData}
-          stroke={color}
-          strokeWidth="2"
-          fill="none"
-        />
-      </svg>
-      <div className={`trend-indicator ${positive ? 'positive' : 'negative'}`}>
-        {positive ? <FiTrendingUp /> : <FiTrendingDown />}
-      </div>
-    </div>
-  );
-};
+function Reports(){
+    const [productData, setProductSoldData] = useState([]);
+    const [filteredProducts, setFilteredProducts] = useState([]);
+    const [totalSaleAmount, setTotalSaleAmt] = useState(0);
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [stockFilter, setStockFilter] = useState('all'); // 'all', 'low', 'out'
+    const [inventoryData, setInventoryData] = useState([]);
 
-const Reports = () => {
-  // Mock data for demonstration
-  const [startDate, setStartDate] = useState(new Date(new Date().setMonth(new Date().getMonth() - 1)));
-  const [endDate, setEndDate] = useState(new Date());
-  const [exportFormat, setExportFormat] = useState('PDF');
-  const [timeRange, setTimeRange] = useState('last30days');
+    // Fetch inventory data on component mount
+    useEffect(() => {
+        fetchInventoryData();
+    }, []);
 
-  // Key metrics
-  const metrics = [
-    {
-      label: 'Total Revenue',
-      value: 45230.75,
-      icon: <FiDollarSign />,
-      growth: 8.2,
-      color: '#4e73df',
-      trend: [32000, 35000, 37000, 40000, 45230]
-    },
-    {
-      label: 'Total Orders',
-      value: 1287,
-      icon: <FiShoppingBag />,
-      growth: 5.6,
-      color: '#1cc88a',
-      trend: [900, 1050, 1100, 1200, 1287]
-    },
-    {
-      label: 'New Customers',
-      value: 312,
-      icon: <FiUsers />,
-      growth: 12.4,
-      color: '#36b9cc',
-      trend: [180, 210, 250, 280, 312]
-    },
-    {
-      label: 'Returning Rate',
-      value: '38%',
-      icon: <FiRepeat />,
-      growth: 2.1,
-      color: '#f6c23e',
-      trend: [30, 32, 34, 36, 38]
-    }
-  ];
+    const fetchInventoryData = async () => {
+        try {
+            const response = await axios.get('http://localhost:3001/inventory');
+            setInventoryData(response.data);
+        } catch (error) {
+            console.error("Error fetching inventory data:", error);
+        }
+    };
 
-  // Top products
-  const topProducts = [
-    { name: 'Wireless Headphones', category: 'Audio', sold: 420, revenue: 13599, rating: 4.8, stock: 12 },
-    { name: 'Smart Watch', category: 'Wearables', sold: 310, revenue: 11200, rating: 4.6, stock: 8 },
-    { name: 'Bluetooth Speaker', category: 'Audio', sold: 270, revenue: 8900, rating: 4.5, stock: 15 }
-  ];
+    const parseDate = (dateString) => {
+        return dateString.split('T')[0]; // format as yyyy-MM-dd
+    };
 
-  // Revenue by category
-  const revenueByCategory = [
-    { category: 'Audio', revenue: 18599 },
-    { category: 'Wearables', revenue: 14200 },
-    { category: 'Accessories', revenue: 6900 },
-    { category: 'Computers', revenue: 5520 }
-  ];
+    const handleSearchWithDate = async () => {
+        if (!fromDate || !toDate) {
+            alert("Please fill in both date fields!");
+            return;
+        }
+        
+        setLoading(true);
+        
+        try {
+            const productSoldResponse = await axios.get(`http://localhost:3001/salereport/searchByDate?fromDate=${fromDate}&toDate=${toDate}`);
+            const productSoldData = productSoldResponse.data;
+            const filteredProducts = productSoldData.filter(product => product.squareFootOrQuantity > 0);
+        
+            const totalAmt = filteredProducts.reduce((sum, prod) => sum + (parseInt(prod.productSalePrice) * parseInt(prod.squareFootOrQuantity)), 0);
+            setTotalSaleAmt(totalAmt);
+            
+            setProductSoldData(filteredProducts);
+            setFilteredProducts(filteredProducts);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            alert("An error occurred while fetching data. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // Top customers
-  const topCustomers = [
-    { name: 'John Doe', orders: 18, spent: 3200, location: 'New York', status: 'VIP' },
-    { name: 'Jane Smith', orders: 15, spent: 2950, location: 'Los Angeles', status: 'VIP' },
-    { name: 'Emily Davis', orders: 12, spent: 2100, location: 'Chicago', status: 'Regular' }
-  ];
+    // Check if a product is low in stock
+    const isLowStock = (productId) => {
+        const inventoryItem = inventoryData.find(item => item.productID === productId);
+        if (!inventoryItem) return false;
+        
+        // Assuming we consider less than 10 items as low stock
+        return inventoryItem.quantity > 0 && inventoryItem.quantity < 10;
+    };
 
-  // Sales trend (mock)
-  const salesTrend = [1200, 1500, 1800, 2100, 2500, 3000, 3500, 4000, 4200, 4300, 4400, 4500];
+    // Check if a product is out of stock
+    const isOutOfStock = (productId) => {
+        const inventoryItem = inventoryData.find(item => item.productID === productId);
+        if (!inventoryItem) return false;
+        
+        return inventoryItem.quantity === 0;
+    };
 
-  // Helper
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+    // Apply stock filter
+    const applyStockFilter = (filterType) => {
+        setStockFilter(filterType);
+        
+        if (filterType === 'all') {
+            setFilteredProducts(productData);
+        } else if (filterType === 'low') {
+            const lowStockProducts = productData.filter(product => 
+                isLowStock(product.productID)
+            );
+            setFilteredProducts(lowStockProducts);
+        } else if (filterType === 'out') {
+            const outOfStockProducts = productData.filter(product => 
+                isOutOfStock(product.productID)
+            );
+            setFilteredProducts(outOfStockProducts);
+        }
+    };
 
-  const handleExport = () => {
-    alert(`Exporting report as ${exportFormat}`);
-  };
-
-  const handleTimeRangeChange = (range) => {
-    setTimeRange(range);
-    // Adjust start/end date logic here if needed
-  };
-
-  return (
-    <div className="analytics-dashboard">
-      {/* Header */}
-      <header className="dashboard-header">
-        <Container fluid>
-          <Row className="align-items-center">
-            <Col md={6}>
-              <div className="d-flex align-items-center">
-                <div className="header-title">
-                  <h1>
-                    <FiBarChart2 className="me-2" />
-                    Business Reports
-                  </h1>
-                  <p className="subtitle">Key insights and analytics for your e-commerce performance</p>
-                </div>
-              </div>
-            </Col>
-            <Col md={6}>
-              <div className="d-flex justify-content-end align-items-center">
-                <div className="time-range-selector me-3">
-                  <Button
-                    variant={timeRange === 'today' ? 'primary' : 'outline-secondary'}
-                    size="sm"
-                    onClick={() => handleTimeRangeChange('today')}
-                    className="time-range-btn"
-                  >
-                    Today
-                  </Button>
-                  <Button
-                    variant={timeRange === 'last7days' ? 'primary' : 'outline-secondary'}
-                    size="sm"
-                    onClick={() => handleTimeRangeChange('last7days')}
-                    className="time-range-btn"
-                  >
-                    7D
-                  </Button>
-                  <Button
-                    variant={timeRange === 'last30days' ? 'primary' : 'outline-secondary'}
-                    size="sm"
-                    onClick={() => handleTimeRangeChange('last30days')}
-                    className="time-range-btn"
-                  >
-                    30D
-                  </Button>
-                  <Button
-                    variant={timeRange === 'thisYear' ? 'primary' : 'outline-secondary'}
-                    size="sm"
-                    onClick={() => handleTimeRangeChange('thisYear')}
-                    className="time-range-btn"
-                  >
-                    YTD
-                  </Button>
-                </div>
-                <div className="date-filter">
-                  <DatePicker
-                    selected={startDate}
-                    onChange={(date) => setStartDate(date)}
-                    selectsStart
-                    startDate={startDate}
-                    endDate={endDate}
-                    className="form-control-sm"
-                    customInput={<Button variant="outline-secondary" size="sm"><FiCalendar /></Button>}
-                  />
-                  <span className="mx-2 text-muted">to</span>
-                  <DatePicker
-                    selected={endDate}
-                    onChange={(date) => setEndDate(date)}
-                    selectsEnd
-                    startDate={startDate}
-                    endDate={endDate}
-                    minDate={startDate}
-                    className="form-control-sm"
-                    customInput={<Button variant="outline-secondary" size="sm"><FiCalendar /></Button>}
-                  />
-                </div>
-                <Dropdown className="ms-3">
-                  <Dropdown.Toggle variant="outline-secondary" size="sm" className="export-btn">
-                    <FiDownload className="me-1" /> Export
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => setExportFormat('PDF')}>PDF</Dropdown.Item>
-                    <Dropdown.Item onClick={() => setExportFormat('Excel')}>Excel</Dropdown.Item>
-                    <Dropdown.Item onClick={() => setExportFormat('CSV')}>CSV</Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-                <Button variant="primary" size="sm" onClick={handleExport} className="ms-2">
-                  Generate Report
-                </Button>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-      </header>
-
-      <Container fluid className="dashboard-content">
-        {/* Key Metrics */}
-        <Row className="mb-4">
-          {metrics.map((metric, idx) => (
-            <Col xl={3} lg={6} md={6} sm={12} className="mb-3" key={idx}>
-              <Card className="summary-card">
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <h6 className="text-muted mb-2">{metric.label}</h6>
-                      <h2>
-                        {typeof metric.value === 'number'
-                          ? formatCurrency(metric.value)
-                          : metric.value}
-                      </h2>
-                      <div className="d-flex align-items-center mt-2">
-                        <Badge bg={metric.growth >= 0 ? "success" : "danger"}>
-                          {metric.growth >= 0 ? <FiTrendingUp /> : <FiTrendingDown />}
-                          {Math.abs(metric.growth).toFixed(1)}%
-                        </Badge>
-                        <small className="text-muted ms-2">vs last period</small>
-                      </div>
-                    </div>
-                    <div className="summary-icon" style={{ background: metric.color }}>
-                      {metric.icon}
-                    </div>
-                  </div>
-                  <MiniSparkline
-                    data={metric.trend}
-                    color={metric.color}
-                    positive={metric.growth >= 0}
-                  />
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-
-        {/* Sales Trend Chart */}
-        <Row className="mb-4">
-          <Col md={12}>
-            <Card>
-              <Card.Body>
-                <h5 className="mb-3">Monthly Sales Trend</h5>
-                <div className="chart-container">
-                  <svg viewBox="0 0 600 120" width="100%" height="120">
-                    <polyline
-                      fill="none"
-                      stroke="#4e73df"
-                      strokeWidth="4"
-                      points={salesTrend.map((v, i) =>
-                        `${(i / (salesTrend.length - 1)) * 600},${120 - (v / Math.max(...salesTrend)) * 100}`
-                      ).join(' ')}
-                    />
-                  </svg>
-                  <div className="d-flex justify-content-between mt-2 px-2">
-                    {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
-                      <span key={i} style={{ fontSize: 12, color: '#888' }}>{m}</span>
-                    ))}
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Revenue by Category & Top Products */}
-        <Row className="mb-4">
-          <Col md={6}>
-            <Card>
-              <Card.Body>
-                <h6 className="mb-3">Revenue by Category</h6>
-                {revenueByCategory.map((cat, idx) => {
-                  const colors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e'];
-                  const total = revenueByCategory.reduce((sum, c) => sum + c.revenue, 0);
-                  const percent = (cat.revenue / total) * 100;
-                  return (
-                    <div key={idx} className="d-flex align-items-center mb-2">
-                      <div style={{
-                        width: 16, height: 16, borderRadius: '50%',
-                        background: colors[idx], marginRight: 10
-                      }}></div>
-                      <div className="flex-grow-1">{cat.category}</div>
-                      <div className="me-2">{formatCurrency(cat.revenue)}</div>
-                      <ProgressBar now={percent} style={{ width: 80, height: 8 }} variant="info" />
-                      <span className="ms-2 text-muted" style={{ fontSize: 13 }}>{percent.toFixed(1)}%</span>
-                    </div>
-                  );
-                })}
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={6}>
-            <Card>
-              <Card.Body>
-                <h6 className="mb-3">Top Selling Products</h6>
-                <Table hover size="sm" className="mb-0">
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Category</th>
-                      <th>Sold</th>
-                      <th>Revenue</th>
-                      <th>Rating</th>
-                      <th>Stock</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topProducts.map((p, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div className="product-icon me-2">
-                              <FiShoppingCart />
+    return (
+        <div className="analytics-dashboard">
+            <div className="dashboard-header">
+                <div className="container-fluid px-3 px-md-4">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h1 className="gradient-text">Sales Analytics</h1>
+                            <p className="subtitle">Track and analyze your sales performance in real-time</p>
+                        </div>
+                        <div className="d-flex align-items-center date-filter mt-2 mt-md-0">
+                            <div className="input-group input-group-dates me-2">
+                                <span className="input-group-text"><FiCalendar size={16} /></span>
+                                <input 
+                                    type="date" 
+                                    className="form-control form-control-sm" 
+                                    onChange={(e) => setFromDate(e.target.value)} 
+                                />
                             </div>
-                            <div>
-                              <div className="fw-bold">{p.name}</div>
+                            <span className="text-white mx-2">to</span>
+                            <div className="input-group input-group-dates me-2">
+                                <span className="input-group-text"><FiCalendar size={16} /></span>
+                                <input 
+                                    type="date" 
+                                    className="form-control form-control-sm" 
+                                    onChange={(e) => setToDate(e.target.value)} 
+                                />
                             </div>
-                          </div>
-                        </td>
-                        <td>{p.category}</td>
-                        <td>{p.sold}</td>
-                        <td>{formatCurrency(p.revenue)}</td>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <FiStar className="text-warning me-1" />
-                            {p.rating}
-                          </div>
-                        </td>
-                        <td>
-                          <Badge bg={p.stock < 5 ? "danger" : p.stock < 15 ? "warning" : "success"}>
-                            {p.stock < 5 ? "Low" : p.stock < 15 ? "Medium" : "In Stock"}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+                            <button 
+                                className="btn btn-search" 
+                                onClick={handleSearchWithDate}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                        Loading...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FiSearch className="me-1" size={16} />
+                                        Search
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        {/* Top Customers */}
-        <Row className="mb-4">
-          <Col md={12}>
-            <Card>
-              <Card.Body>
-                <h6 className="mb-3">Top Customers</h6>
-                <Table hover size="sm" className="mb-0">
-                  <thead>
-                    <tr>
-                      <th>Customer</th>
-                      <th>Location</th>
-                      <th>Orders</th>
-                      <th>Total Spent</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topCustomers.map((c, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div className="customer-avatar me-2">
-                              {c.name.charAt(0)}
+            <div className="container-fluid px-3 px-md-4 dashboard-content">
+                <div className="row mb-4">
+                    <div className="col-xl-3 col-md-6 col-sm-6 mb-4">
+                        <div className="summary-card card card-sales">
+                            <div className="card-body">
+                                <div className="d-flex align-items-center">
+                                    <div className="flex-grow-1">
+                                        <div className="text-xs font-weight-bold text-uppercase mb-1">Total Sales</div>
+                                        <div className="h5 mb-0 font-weight-bold">${totalSaleAmount.toLocaleString()}</div>
+                                    </div>
+                                    <div className="summary-icon">
+                                        <FiDollarSign size={24} />
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-small">
+                                    <span className="text-success">
+                                        <FiTrendingUp className="me-1" />
+                                        Revenue
+                                    </span>
+                                </div>
                             </div>
-                            <div className="fw-bold">{c.name}</div>
-                          </div>
-                        </td>
-                        <td>{c.location}</td>
-                        <td>{c.orders}</td>
-                        <td>{formatCurrency(c.spent)}</td>
-                        <td>
-                          <Badge bg={c.status === 'VIP' ? "primary" : "secondary"}>
-                            {c.status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </div>
-  );
-};
+                        </div>
+                    </div>
+
+                    <div className="col-xl-3 col-md-6 col-sm-6 mb-4">
+                        <div className="summary-card card card-products">
+                            <div className="card-body">
+                                <div className="d-flex align-items-center">
+                                    <div className="flex-grow-1">
+                                        <div className="text-xs font-weight-bold text-uppercase mb-1">Products Sold</div>
+                                        <div className="h5 mb-0 font-weight-bold">{productData.length}</div>
+                                    </div>
+                                    <div className="summary-icon">
+                                        <FiBox size={24} />
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-small">
+                                    <span className="text-secondary">
+                                        <FiBox className="me-1" />
+                                        Items
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-xl-3 col-md-6 col-sm-6 mb-4">
+                        <div className="summary-card card card-due">
+                            <div className="card-body">
+                                <div className="d-flex align-items-center">
+                                    <div className="flex-grow-1">
+                                        <div className="text-xs font-weight-bold text-uppercase mb-1">Low Stock Items</div>
+                                        <div className="h5 mb-0 font-weight-bold">
+                                            {inventoryData.filter(item => item.quantity > 0 && item.quantity < 10).length}
+                                        </div>
+                                    </div>
+                                    <div className="summary-icon">
+                                        <FiAlertTriangle size={24} />
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-small">
+                                    <span className="text-warning">
+                                        <FiAlertTriangle className="me-1" />
+                                        Needs Attention
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-xl-3 col-md-6 col-sm-6 mb-4">
+                        <div className="summary-card card card-expense">
+                            <div className="card-body">
+                                <div className="d-flex align-items-center">
+                                    <div className="flex-grow-1">
+                                        <div className="text-xs font-weight-bold text-uppercase mb-1">Out of Stock</div>
+                                        <div className="h5 mb-0 font-weight-bold">
+                                            {inventoryData.filter(item => item.quantity === 0).length}
+                                        </div>
+                                    </div>
+                                    <div className="summary-icon">
+                                        <FiBox size={24} />
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-small">
+                                    <span className="text-danger">
+                                        <FiBox className="me-1" />
+                                        Restock Needed
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="card shadow mb-4 tabs-card">
+                    <div className="card-header py-3 d-flex flex-wrap align-items-center justify-content-between">
+                        <h6 className="m-0 font-weight-bold text-primary">
+                            <FiBox className="me-2" />
+                            Sales Details
+                        </h6>
+                        <div className="d-flex align-items-center">
+                            <span className="me-2 small text-muted">Showing data from</span>
+                            <span className="font-weight-bold text-primary me-3">
+                                {fromDate || 'N/A'} to {toDate || 'N/A'}
+                            </span>
+                            <div className="btn-group">
+                                <button 
+                                    type="button" 
+                                    className={`btn btn-sm ${stockFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                    onClick={() => applyStockFilter('all')}
+                                >
+                                    <FiFilter className="me-1" />
+                                    All Products
+                                </button>
+                                <button 
+                                    type="button" 
+                                    className={`btn btn-sm ${stockFilter === 'low' ? 'btn-warning' : 'btn-outline-warning'}`}
+                                    onClick={() => applyStockFilter('low')}
+                                >
+                                    <FiAlertTriangle className="me-1" />
+                                    Low Stock
+                                </button>
+                                <button 
+                                    type="button" 
+                                    className={`btn btn-sm ${stockFilter === 'out' ? 'btn-danger' : 'btn-outline-danger'}`}
+                                    onClick={() => applyStockFilter('out')}
+                                >
+                                    <FiBox className="me-1" />
+                                    Out of Stock
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <div className="table-responsive">
+                            <table className="table table-hover" width="100%" cellSpacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>S/N</th>
+                                        <th>Invoice ID</th>
+                                        <th>Product ID</th>
+                                        <th>Sale Date</th>
+                                        <th>Product Name</th>
+                                        <th>Sale Price</th>
+                                        <th>Quantity</th>
+                                        <th>Sale Amount</th>
+                                        <th>Stock Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredProducts.length > 0 ? (
+                                        filteredProducts.map((prod, index) => {
+                                            const lowStock = isLowStock(prod.productID);
+                                            const outOfStock = isOutOfStock(prod.productID);
+                                            
+                                            return (
+                                                <tr key={prod._id} className="table-row">
+                                                    <td className="fw-bold">{index+1}</td>
+                                                    <td><span className="badge bg-light text-dark">{prod.invoiceID}</span></td>
+                                                    <td><span className="badge bg-info">{prod.productID}</span></td>
+                                                    <td>{parseDate(prod.date)}</td>
+                                                    <td className="fw-medium">{prod.productName}</td>
+                                                    <td>${prod.productSalePrice}</td>
+                                                    <td><span className="badge bg-secondary">{prod.squareFootOrQuantity}</span></td>
+                                                    <td className="fw-bold text-success">${(prod.productSalePrice * prod.squareFootOrQuantity).toLocaleString()}</td>
+                                                    <td>
+                                                        {outOfStock ? (
+                                                            <span className="badge bg-danger">Out of Stock</span>
+                                                        ) : lowStock ? (
+                                                            <span className="badge bg-warning">Low Stock</span>
+                                                        ) : (
+                                                            <span className="badge bg-success">In Stock</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="9" className="text-center py-5">
+                                                {loading ? (
+                                                    <div className="d-flex justify-content-center align-items-center flex-column">
+                                                        <div className="spinner-border text-primary mb-3" role="status">
+                                                            <span className="visually-hidden">Loading...</span>
+                                                        </div>
+                                                        <p className="text-muted">Loading sales data...</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="d-flex justify-content-center align-items-center flex-column">
+                                                        <FiBox size={48} className="text-muted mb-3" />
+                                                        <p className="text-muted mb-1">No data available</p>
+                                                        <small className="text-muted">Select a date range and click Search to load sales data</small>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                                {filteredProducts.length > 0 && (
+                                    <tfoot className="table-footer">
+                                        <tr>
+                                            <td colSpan="7" className="text-end fw-bold">Totals:</td>
+                                            <td className="fw-bold text-success">${totalSaleAmount.toLocaleString()}</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default Reports;

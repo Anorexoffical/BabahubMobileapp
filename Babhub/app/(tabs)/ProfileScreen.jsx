@@ -3,8 +3,12 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
+import { useAuth } from '../contexts/AuthContext';
+
 const ProfileScreen = () => {
   const navigation = useNavigation();
+  const { user, signOut } = useAuth();
+
 
   return (
     <ScrollView style={styles.container}>
@@ -19,8 +23,10 @@ const ProfileScreen = () => {
             style={styles.avatar}
           />
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>ali khan</Text>
-            <Text style={styles.userEmail}>hafizalihaider2491@gmail.com</Text>
+            {/* <Text style={styles.userName}>ali khan</Text>
+            <Text style={styles.userEmail}>hafizalihaider2491@gmail.com</Text> */}
+            <Text style={styles.userName}>{user?.name || "Guest"}</Text>
+            <Text style={styles.userEmail}>{user?.email || "Not logged in"}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -58,7 +64,16 @@ const ProfileScreen = () => {
         />
       </View>
 
-      <TouchableOpacity style={styles.logoutButton}>
+      {/* <TouchableOpacity style={styles.logoutButton}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity> */}
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={async () => {
+          await signOut(); 
+          navigation.replace("LoginScreen");
+        }}
+      >
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </ScrollView>

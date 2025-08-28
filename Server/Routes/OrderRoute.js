@@ -4,7 +4,6 @@ const crypto = require("crypto");
 const Order = require("../Models/OrderModel.js");
 
 
-
 // PayFast Payment Integration
 const generateSignature = (data, passPhrase = "") => {
   const getString = Object.keys(data)
@@ -22,11 +21,15 @@ router.post("/payfast/initiate-payment", async (req, res) => {
     //for sandbox test
     const merchant_id = "10036171";
     const merchant_key = "731ry9o3bmz2d";
-    const return_url = "https://11b70a81954f.ngrok-free.app/payment/payfast/success";
-    const cancel_url = "https://11b70a81954f.ngrok-free.app/payment/payfast/cancel";
-    const notify_url = "https://11b70a81954f.ngrok-free.app/payment/payfast/notifyurl";
+    const return_url = "https://f204f8e09b51.ngrok-free.app/payment/payfast/success";
+    const cancel_url = "https://f204f8e09b51.ngrok-free.app/payment/payfast/cancel";
+    const notify_url = "https://f204f8e09b51.ngrok-free.app/payment/payfast/notifyurl";
     // const notify_url = "https://3a31-103-137-24-132.ngrok-free.app/payfast/notifyurl";
+// wisal
 
+https://f204f8e09b51.ngrok-free.app
+
+// umair 
     //https://11b70a81954f.ngrok-free.app 
     console.log(items);
     
@@ -60,16 +63,27 @@ router.get("/get", async (req, res) => {
   }
 });
 
-//update the deliverystatus
-router.put("/orderstatusupdate/:id/deliver", async (req, res) => {
+// Update the delivery status
+router.put("/update-status/:id", async (req, res) => {
   try {
-    const updatedOrder = await Order.findByIdAndUpdate(
-      req.params.id,
-      { deliveryStatus: "Delivered" },
+    const { status } = req.body;
+    const validStatuses = ["Processing", "Shipped", "Completed"];
+    
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderID: req.params.id },
+      { deliveryStatus: status },
       { new: true }
     );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
     res.status(200).json(updatedOrder);
-    console.log("updated status")
   } catch (err) {
     res.status(500).json({ error: "Failed to update delivery status" });
   }

@@ -54,36 +54,48 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
-    if (!validateInputs()) return;
-    
-    setIsLoading(true);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // In a real app, you would call your authentication API here
-      // For demo purposes, we'll accept any email/password that passes validation
-      const authToken = 'mock-jwt-token-' + Date.now();
-      
-      // Sign in using the auth context
-      await signIn(authToken, email);
-      
-      // Navigate to main app
-      router.replace('/(tabs)/HomeScreen');
-    } catch (error) {
-      Alert.alert('Login Failed', error.message || 'An error occurred during login');
-    } finally {
-      setIsLoading(false);
+  if (!validateInputs()) return;
+
+  setIsLoading(true);
+
+  try {
+    // const response = await fetch("http://localhost:3001/api/users/login",
+   const response = await fetch("https://f3ae168b7043.ngrok-free.app/api/users/login", 
+      { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+    console.log("Login response:", data);
+
+    if (response.ok) {
+      // can do JWT token from here after deploying it to the server
+      // const authToken = "real-jwt-token-or-session";
+      // await signIn(authToken, email);
+      const { user } = data;
+      const authToken = "mock-or-jwt"; // replace with real JWT later
+      await signIn(authToken, user); 
+      router.replace("/(tabs)/HomeScreen");
+
+    } else {
+      Alert.alert("Login Failed", data.message || "Invalid credentials");
     }
-  };
+  } catch (err) {
+    Alert.alert("Error", "Failed to connect to server");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleCreateAccount = () => {
-    router.push('/CreateAccount'); // You'll need to create this screen
+    router.push('/CreateAccount'); 
   };
   
   const forgetpassword = () => {
-    router.push('/ForgetPassword'); // You'll need to create this screen
+    router.push('/ForgetPassword'); 
   };
 
   return (
