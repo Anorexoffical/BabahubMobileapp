@@ -49,8 +49,8 @@ const CreateAccount = () => {
   }
 
   try {
-    // const response = await fetch("http://localhost:3001/api/users/register", { // use 10.0.2.2 for Android emulator, localhost for iOS
-       const response = await fetch("https://f3ae168b7043.ngrok-free.app/api/users/register", { // use 10.0.2.2 for Android emulator, localhost for iOS
+    const response = await fetch("http://localhost:3001/api/users/register", { // use 10.0.2.2 for Android emulator, localhost for iOS
+      //  const response = await fetch("https://f3ae168b7043.ngrok-free.app/api/users/register", { // use 10.0.2.2 for Android emulator, localhost for iOS
   
      
       method: "POST",

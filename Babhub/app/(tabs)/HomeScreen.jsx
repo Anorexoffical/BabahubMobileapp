@@ -167,8 +167,8 @@ const isInWishlist = (productId) => wishlist.some(item => item.id === productId)
     >
       <View style={styles.imageContainer}>
          {/* For Android Emulator → use http://10.0.2.2:3001 */}
-        {/* <Image source={{ uri: `http://localhost:3001${item.image}` }} */}
-        <Image source={{ uri: `https://f3ae168b7043.ngrok-free.app${item.image}` }}
+        <Image source={{ uri: `http://localhost:3001${item.image}` }}
+        // <Image source={{ uri: `https://f3ae168b7043.ngrok-free.app${item.image}` }}
 
         
         style={styles.image} 
