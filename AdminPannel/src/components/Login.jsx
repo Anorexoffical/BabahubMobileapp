@@ -59,10 +59,14 @@ const Login = ({ onLogin }) => {
 
     setIsLoading(true);
     try {
-      await axios.post("https://icellmobile.co.za/api/user", formData);
+      const response = await axios.post("http://localhost:3001/api/users/login", {
+        email: formData.userName,   
+        password: formData.password,
+        role: "admin"
+      });
 
       // Save session
-      onLogin(formData.userName);
+      onLogin(response.data.user.name);
 
       navigate('/dashboard');
     } catch (error) {
@@ -89,8 +93,7 @@ const Login = ({ onLogin }) => {
           <div className="col-md-6 d-flex flex-column justify-content-center align-items-center p-4">
             <img src={logo} alt="Illustration" className="img-fluid mb-3" style={{ maxWidth: '80%' }} />
             <p className="text-center text-secondary">
-              Stay connected with iCell Mobile – your trusted network for seamless SIM, 
-              data, and packages, designed for ultimate convenience and speed.
+              Stay connected with Babahub
             </p>
           </div>
 

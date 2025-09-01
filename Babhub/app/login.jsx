@@ -53,41 +53,41 @@ const Login = () => {
     return true;
   };
 
-  const handleLogin = async () => {
+const handleLogin = async () => {
   if (!validateInputs()) return;
 
   setIsLoading(true);
 
   try {
-    const response = await fetch("http://localhost:3001/api/users/login",
-  //  const response = await fetch("https://f3ae168b7043.ngrok-free.app/api/users/login", 
-      { 
+    const response = await fetch("http://localhost:3001/api/users/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email,
+        password,
+        role: "customer",
+      }),
     });
 
     const data = await response.json();
     console.log("Login response:", data);
 
     if (response.ok) {
-      // can do JWT token from here after deploying it to the server
-      // const authToken = "real-jwt-token-or-session";
-      // await signIn(authToken, email);
       const { user } = data;
       const authToken = "mock-or-jwt"; // replace with real JWT later
-      await signIn(authToken, user); 
+      await signIn(authToken, user);
       router.replace("/(tabs)/HomeScreen");
-
     } else {
       Alert.alert("Login Failed", data.message || "Invalid credentials");
     }
   } catch (err) {
+    console.error("Login error:", err.message);
     Alert.alert("Error", "Failed to connect to server");
   } finally {
     setIsLoading(false);
   }
 };
+
 
 
   const handleCreateAccount = () => {

@@ -4,22 +4,16 @@ const User = require("../Models/UserModel");
 
 const router = express.Router();
 
-/**
- * @route   POST /api/users/register
- * @desc    Register new user
- */
 router.post("/register", async (req, res) => {
   const { name, email, dob, password } = req.body;
   console.log("Incoming body:", req.body);
 
   try {
-    // check if user exists
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
-
-    // create new user
     const newUser = new User({ name, email, dob, password });
     await newUser.save();
 
@@ -37,21 +31,20 @@ router.post("/register", async (req, res) => {
   }
 });
 
-/**
- * @route   POST /api/users/login
- * @desc    Login user
- */
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
   try {
-    // check user
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid email or password" });
+    const user = await User.findOne({ email, role });
+    console.log("Found user:", user);
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials or role" });
+    }
 
-    // check password
     const isMatch = await user.matchPassword(password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid email or password" });
+    if (!isMatch) {
+      return res.status(400).json({ message: "password Incorrect" });
+    }
 
     res.json({
       message: "Login successful",
@@ -59,6 +52,7 @@ router.post("/login", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         dob: user.dob,
       },
     });
@@ -66,5 +60,19 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
+
+// Get customers (role: customer)
+router.get("/customers", async (req, res) => {
+  try {
+    const customers = await User.find({ role: "customer" }).select("-password");
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+
+
+
 
 module.exports = router;

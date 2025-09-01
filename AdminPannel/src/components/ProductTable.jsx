@@ -4,10 +4,11 @@ import {
   FiPlus,
   FiChevronLeft,
   FiChevronRight,
-  FiMoreHorizontal
+  FiMoreHorizontal,
+  FiEdit
 } from 'react-icons/fi';
 import { Modal, Button, Table, Badge, Alert } from 'react-bootstrap';
-import AddProductModal from './AddProduct.jsx';
+import AddProduct from './AddProduct.jsx'; // Changed import name
 import '../Style/ProductTable.css';
 import Topbar from './Topbar.jsx';
 import axios from 'axios';
@@ -22,6 +23,9 @@ const ProductTable = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
+  const [stockFilter, setStockFilter] = useState('all');
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -47,13 +51,29 @@ const ProductTable = () => {
   const handleAddProduct = async (product) => {
     setIsSubmitting(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/products', product);
+      const res = await axios.post('http://localhost:3001/api/products', product);
       setProducts([...products, res.data]);
       setShowAddModal(false);
       setSuccessMessage(`Product "${res.data.name}" added successfully!`);
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       console.error('Error adding product:', err);
+    }
+    setIsSubmitting(false);
+  };
+
+  const handleUpdateProduct = async (product) => {
+    setIsSubmitting(true);
+    try {
+      const res = await axios.put(`http://localhost:3001/api/products/${editingProduct._id}`, product);
+      setProducts(products.map(p => p._id === editingProduct._id ? res.data : p));
+      setShowAddModal(false);
+      setEditingProduct(null);
+      setIsEditing(false);
+      setSuccessMessage(`Product "${res.data.name}" updated successfully!`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error updating product:', err);
     }
     setIsSubmitting(false);
   };
@@ -77,11 +97,22 @@ const ProductTable = () => {
     return 'success';
   };
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const status = getProductStatus(product.variants);
+    let matchesStock = true;
+    if (stockFilter === 'low') {
+      matchesStock = status === 'Low Stock';
+    } else if (stockFilter === 'out') {
+      matchesStock = status === 'Out of Stock';
+    }
+    
+    return matchesSearch && matchesStock;
+  });
 
   const indexOfLast = currentPage * productsPerPage;
   const indexOfFirst = indexOfLast - productsPerPage;
@@ -95,6 +126,18 @@ const ProductTable = () => {
     setShowDetailsModal(true);
   };
 
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setIsEditing(true);
+    setShowAddModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowAddModal(false);
+    setIsEditing(false);
+    setEditingProduct(null);
+  };
+
   return (
     <>
       <Topbar />
@@ -106,14 +149,18 @@ const ProductTable = () => {
           </Alert>
         )}
 
-        <AddProductModal 
-          show={showAddModal} 
-          onHide={() => !isSubmitting && setShowAddModal(false)} 
+        {/* Add Product Modal */}
+        <AddProduct
+          show={showAddModal}
+          onHide={handleModalClose}
           onAddProduct={handleAddProduct}
+          onUpdateProduct={handleUpdateProduct}
           isSubmitting={isSubmitting}
+          setIsSubmitting={setIsSubmitting}
+          editingProduct={editingProduct}
+          isEditing={isEditing}
         />
 
-        {/* Product Details Modal */}
         <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" centered>
           <Modal.Header closeButton className="bg-light">
             <Modal.Title className="fw-bold">Product Details</Modal.Title>
@@ -192,7 +239,6 @@ const ProductTable = () => {
           </Modal.Footer>
         </Modal>
 
-        {/* Dashboard Header */}
         <div className={`dashboard-header ${isScrolled ? 'scrolled' : ''}`}>
           <div className="container-fluid">
             <div className="row align-items-center mb-3 mb-md-0">
@@ -217,11 +263,40 @@ const ProductTable = () => {
                 
                 <Button 
                   variant="primary" 
-                  onClick={() => setShowAddModal(true)} 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditingProduct(null);
+                    setShowAddModal(true);
+                  }} 
                   className="add-product-btn"
                 >
                   <FiPlus className="me-1" /> Add Product
                 </Button>
+              </div>
+            </div>
+            
+            <div className="row mt-3">
+              <div className="col-12">
+                <div className="stock-filter-tabs">
+                  <button 
+                    className={`filter-tab ${stockFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setStockFilter('all')}
+                  >
+                    All Products
+                  </button>
+                  <button 
+                    className={`filter-tab ${stockFilter === 'low' ? 'active' : ''}`}
+                    onClick={() => setStockFilter('low')}
+                  >
+                    Low Stock
+                  </button>
+                  <button 
+                    className={`filter-tab ${stockFilter === 'out' ? 'active' : ''}`}
+                    onClick={() => setStockFilter('out')}
+                  >
+                    Out of Stock
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -260,7 +335,6 @@ const ProductTable = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className="container-fluid mt-4">
           <div className="card">
             <div className="card-body p-0">
@@ -304,14 +378,24 @@ const ProductTable = () => {
                           <td className="d-none d-lg-table-cell">{product.brand}</td>
                           <td className="d-none d-lg-table-cell">{product.category}</td>
                           <td>
-                            <Button 
-                              variant="outline-primary" 
-                              size="sm" 
-                              onClick={() => openDetailsModal(product)}
-                              className="d-flex align-items-center gap-1"
-                            >
-                              <FiMoreHorizontal /> Details
-                            </Button>
+                            <div className="d-flex gap-2">
+                              <Button 
+                                variant="outline-primary" 
+                                size="sm" 
+                                onClick={() => openDetailsModal(product)}
+                                className="d-flex align-items-center gap-1"
+                              >
+                                <FiMoreHorizontal /> Details
+                              </Button>
+                              <Button 
+                                variant="outline-success" 
+                                size="sm" 
+                                onClick={() => openEditModal(product)}
+                                className="d-flex align-items-center gap-1"
+                              >
+                                <FiEdit /> Update
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -322,7 +406,11 @@ const ProductTable = () => {
                             <FiSearch size={48} className="text-muted mb-3" />
                             <h5>No products found</h5>
                             <p className="text-muted">Try adjusting your search or add a new product</p>
-                            <Button variant="primary" onClick={() => setShowAddModal(true)}>
+                            <Button variant="primary" onClick={() => {
+                              setIsEditing(false);
+                              setEditingProduct(null);
+                              setShowAddModal(true);
+                            }}>
                               <FiPlus className="me-1" /> Add Product
                             </Button>
                           </div>

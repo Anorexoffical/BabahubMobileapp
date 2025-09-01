@@ -181,7 +181,8 @@ const Orders = () => {
                   {currentOrders.length > 0 ? (
                     currentOrders.map(order => (
                       <tr key={order._id}>
-                        <td>{order.orderID}</td>
+                        {/* <td>{order.orderID}</td> */}
+                        <td>{order.orderID.split("-").slice(0, 2).join("-")}</td>
                         <td>
                           <div className="d-flex align-items-center">
                             <FiUser className="me-2" />

@@ -41,7 +41,7 @@ const Topbar = ({ onItemClick }) => {
       <div className="topbar-left">
         <div className="logo-container">
           <div className="logo-shape"></div>
-          <h4 className="topbar-title">My<span>App</span></h4>
+          <h4 className="topbar-title">Baba<span>Hub</span></h4>
         </div>
       </div>
 
@@ -111,7 +111,7 @@ const Topbar = ({ onItemClick }) => {
               className="user-avatar" 
             />
             <div className="user-info">
-              <div className="user-name">Sarah Johnson</div>
+              <div className="user-name">Super-Admin</div>
               <small className="user-role">Admin</small>
             </div>
             <FaChevronDown className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`} />

@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
-import { FiPlus, FiTrash2, FiStar, FiImage, FiDollarSign, FiUpload } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiPlus, FiTrash2, FiStar, FiImage, FiDollarSign, FiUpload, FiSave } from 'react-icons/fi';
 import { Modal, Button, Spinner, Form, Row, Col, Alert, Badge } from 'react-bootstrap';
 import axios from 'axios';
 
-const AddProduct = ({ show, onHide }) => {
-
+const AddProduct = ({ 
+  show, 
+  onHide, 
+  onAddProduct, 
+  onUpdateProduct, 
+  isSubmitting,
+  setIsSubmitting, // Added this prop
+  editingProduct,
+  isEditing 
+}) => {
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
@@ -16,13 +24,31 @@ const AddProduct = ({ show, onHide }) => {
     variants: [{
       color: '',
       colorCode: '#6c757d',
-      // images: [],
       sizes: [{ size: '', stock: 0, price: 0 }]
     }]
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [imagePreview, setImagePreview] = useState('');
+
+  // Reset form when modal is opened/closed or editingProduct changes
+  useEffect(() => {
+    if (isEditing && editingProduct) {
+      // Set form data with editing product
+      setNewProduct({
+        ...editingProduct,
+        mainImage: null // We'll handle image separately
+      });
+      
+      // If editing product has an image, set the preview
+      if (editingProduct.image) {
+        setImagePreview(editingProduct.image);
+      }
+    } else {
+      // Reset to default empty form
+      resetForm();
+    }
+  }, [show, isEditing, editingProduct]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -30,7 +56,17 @@ const AddProduct = ({ show, onHide }) => {
   };
 
   const handleFileChange = (e) => {
-    setNewProduct({ ...newProduct, mainImage: e.target.files[0] });
+    const file = e.target.files[0];
+    setNewProduct({ ...newProduct, mainImage: file });
+    
+    // Create preview for new image
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleToggleFeatured = () => {
@@ -57,7 +93,6 @@ const AddProduct = ({ show, onHide }) => {
         {
           color: '',
           colorCode: '#6c757d',
-          // images: [],
           sizes: [{ size: '', stock: 0, price: 0 }]
         }
       ]
@@ -82,62 +117,57 @@ const AddProduct = ({ show, onHide }) => {
     setNewProduct({ ...newProduct, variants: updatedVariants });
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-//   const handleSubmit = async (e) => {
-//   e.preventDefault();
-//   setIsSubmitting(true);
-//   try {
-//     const response = await axios.post('http://localhost:3001/api/products', newProduct);
+    try {
+      const formData = new FormData();
+      formData.append('name', newProduct.name);
+      formData.append('description', newProduct.description);
+      formData.append('brand', newProduct.brand);
+      formData.append('category', newProduct.category);
+      formData.append('isFeatured', newProduct.isFeatured);
+      
+      // Only append mainImage if it's a new file
+      if (newProduct.mainImage) {
+        formData.append('mainImage', newProduct.mainImage);
+      }
+      
+      formData.append('variants', JSON.stringify(newProduct.variants));
 
-//     console.log('Product added:', response.data);
-//     setSuccessMessage(`Product "${response.data.name}" saved successfully!`);
+      if (isEditing) {
+        // Update existing product
+        const response = await axios.put(`http://localhost:3001/api/products/${editingProduct._id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        
+        console.log('Product updated:', response.data);
+        setSuccessMessage(`Product "${response.data.name}" updated successfully!`);
+        onUpdateProduct(response.data);
+      } else {
+        // Add new product
+        const response = await axios.post('http://localhost:3001/api/products', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
 
-//     setTimeout(() => {
-//       setSuccessMessage('');
-//       onHide();
-//       resetForm();
-//     }, 2000);
-//   } catch (error) {
-//     console.error('Error saving product:', error);
-//     alert('Error adding product. Please try again.');
-//   } finally {
-//     setIsSubmitting(false);
-//   }
-// };
+        console.log('Product added:', response.data);
+        setSuccessMessage(`Product "${response.data.name}" saved successfully!`);
+        onAddProduct(response.data);
+      }
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-
-  try {
-    const formData = new FormData();
-    formData.append('name', newProduct.name);
-    formData.append('description', newProduct.description);
-    formData.append('brand', newProduct.brand);
-    formData.append('category', newProduct.category);
-    formData.append('isFeatured', newProduct.isFeatured);
-    formData.append('mainImage', newProduct.mainImage);
-    formData.append('variants', JSON.stringify(newProduct.variants));
-
-    const response = await axios.post('http://localhost:3001/api/products', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-
-    console.log('Product added:', response.data);
-    setSuccessMessage(`Product "${response.data.name}" saved successfully!`);
-
-    setTimeout(() => {
-      setSuccessMessage('');
-      onHide();
-      resetForm();
-    }, 2000);
-  } catch (error) {
-    console.error('Error saving product:', error);
-    alert('Error adding product. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+      setTimeout(() => {
+        setSuccessMessage('');
+        onHide();
+        resetForm();
+      }, 2000);
+    } catch (error) {
+      console.error('Error saving product:', error);
+      alert(`Error ${isEditing ? 'updating' : 'adding'} product. Please try again.`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const resetForm = () => {
     setNewProduct({
@@ -150,19 +180,26 @@ const handleSubmit = async (e) => {
       variants: [{
         color: '',
         colorCode: '#6c757d',
-        // images: [],
         sizes: [{ size: '', stock: 0, price: 0 }]
       }]
     });
+    setImagePreview('');
+  };
+
+  const handleModalClose = () => {
+    if (!isSubmitting) {
+      onHide();
+      resetForm();
+    }
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="xl" centered scrollable className="product-modal">
+    <Modal show={show} onHide={handleModalClose} size="xl" centered scrollable className="product-modal">
       <Modal.Header closeButton={!isSubmitting} className="bg-white border-bottom-0">
         <Modal.Title className="fw-bold text-primary">
           <span className="d-flex align-items-center gap-2">
-            <FiPlus className="text-primary" size={24} />
-            <span>Add New Product</span>
+            {isEditing ? <FiSave size={24} /> : <FiPlus size={24} />}
+            <span>{isEditing ? 'Edit Product' : 'Add New Product'}</span>
           </span>
         </Modal.Title>
       </Modal.Header>
@@ -243,13 +280,18 @@ const handleSubmit = async (e) => {
               </Col>
               <Col md={12}>
                 <Form.Group>
-                  <Form.Label className="fw-medium text-muted mb-2">Main Product Image *</Form.Label>
+                  <Form.Label className="fw-medium text-muted mb-2">
+                    Main Product Image {!isEditing && '*'}
+                    {isEditing && imagePreview && (
+                      <span className="text-muted ms-2 fw-normal">(Leave empty to keep current image)</span>
+                    )}
+                  </Form.Label>
                   <div className="border-2 rounded p-3 bg-light">
                     <Form.Control 
                       type="file" 
                       accept="image/*" 
                       onChange={handleFileChange} 
-                      required 
+                      required={!isEditing}
                       className="d-none" 
                       id="mainImageUpload"
                     />
@@ -257,10 +299,10 @@ const handleSubmit = async (e) => {
                       htmlFor="mainImageUpload" 
                       className="d-flex flex-column align-items-center justify-content-center cursor-pointer p-4"
                     >
-                      {newProduct.mainImage ? (
+                      {imagePreview ? (
                         <>
                           <img 
-                            src={URL.createObjectURL(newProduct.mainImage)} 
+                            src={imagePreview} 
                             alt="Preview" 
                             className="img-fluid mb-2" 
                             style={{ maxHeight: '150px' }}
@@ -271,7 +313,7 @@ const handleSubmit = async (e) => {
                         <>
                           <FiUpload size={24} className="mb-2 text-muted" />
                           <span className="text-muted">Click to upload product image</span>
-                          <small className="text-danger mt-1">* Required</small>
+                          {!isEditing && <small className="text-danger mt-1">* Required</small>}
                         </>
                       )}
                     </Form.Label>
@@ -309,6 +351,7 @@ const handleSubmit = async (e) => {
                 size="sm" 
                 onClick={addVariant}
                 className="d-flex align-items-center gap-1"
+                disabled={isSubmitting}
               >
                 <FiPlus size={16} /> More Variant
               </Button>
@@ -349,6 +392,7 @@ const handleSubmit = async (e) => {
                         placeholder="e.g., Midnight Black, Ocean Blue"
                         required
                         className="border-2 py-2 px-3"
+                        disabled={isSubmitting}
                       />
                     </Form.Group>
                   </Col>
@@ -363,6 +407,7 @@ const handleSubmit = async (e) => {
                           onChange={(e) => handleVariantChange(index, 'colorCode', e.target.value)}
                           style={{ width: '50px', height: '50px' }}
                           required
+                          disabled={isSubmitting}
                         />
                         <div className="text-muted small bg-light p-2 rounded">
                           Selected: <span className="fw-medium">{variant.colorCode}</span>
@@ -383,6 +428,7 @@ const handleSubmit = async (e) => {
                       size="sm" 
                       onClick={() => addSize(index)}
                       className="d-flex align-items-center gap-1"
+                      disabled={isSubmitting}
                     >
                       <FiPlus size={14} /> More Size Variant
                     </Button>
@@ -399,6 +445,7 @@ const handleSubmit = async (e) => {
                             onChange={(e) => handleSizeChange(index, sIdx, 'size', e.target.value)}
                             required
                             className="border-2 py-2 px-3"
+                            disabled={isSubmitting}
                           />
                         </Form.Group>
                       </Col>
@@ -413,6 +460,7 @@ const handleSubmit = async (e) => {
                             onChange={(e) => handleSizeChange(index, sIdx, 'stock', parseInt(e.target.value || 0))}
                             required
                             className="border-2 py-2 px-3"
+                            disabled={isSubmitting}
                           />
                         </Form.Group>
                       </Col>
@@ -430,6 +478,7 @@ const handleSubmit = async (e) => {
                               onChange={(e) => handleSizeChange(index, sIdx, 'price', parseFloat(e.target.value || 0))}
                               required
                               className="border-2 py-2 px-3"
+                              disabled={isSubmitting}
                             />
                           </div>
                         </Form.Group>
@@ -458,7 +507,7 @@ const handleSubmit = async (e) => {
           <div className="d-flex justify-content-between mt-5 pt-3 border-top">
             <Button 
               variant="outline-secondary" 
-              onClick={onHide} 
+              onClick={handleModalClose} 
               disabled={isSubmitting}
               className="px-4 py-2"
             >
@@ -473,12 +522,12 @@ const handleSubmit = async (e) => {
               {isSubmitting ? (
                 <>
                   <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
-                  Saving Product...
+                  {isEditing ? 'Updating Product...' : 'Saving Product...'}
                 </>
               ) : (
                 <>
-                  <FiPlus className="me-2" size={18} />
-                  Save Product
+                  {isEditing ? <FiSave className="me-2" /> : <FiPlus className="me-2" />}
+                  {isEditing ? 'Update Product' : 'Save Product'}
                 </>
               )}
             </Button>

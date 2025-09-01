@@ -15,18 +15,14 @@ import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 
-
-
-const { width } = Dimensions.get('window');
-
+const { width, height } = Dimensions.get('window');
 
 // Sample user data
 const defaultUser = {
   isLoggedIn: false,
-  name: 'Guest' ,
+  name: 'Guest',
   profileImage: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
 };
-
 
 const banners = [
   {
@@ -56,7 +52,7 @@ const BannerItem = ({ item, router }) => (
     <View style={styles.bannerOverlay}>
       <Text style={styles.bannerTitle}>{item.title}</Text>
       <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.bannerButton}
         onPress={() => router.push('StoreScreen')}
       >
@@ -67,36 +63,44 @@ const BannerItem = ({ item, router }) => (
 );
 
 const HomeScreen = () => {
-    const { user1 } = useAuth();
-
-
-  const [cartItems, setCartItems] = useState(3);
+  const { user } = useAuth();
+  const [cartItems, setCartItems] = useState(0);
   const [wishlist, setWishlist] = useState([]);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [showAllProducts, setShowAllProducts] = useState(false);
-  const [user, setUser] = useState(defaultUser);
+  const [products, setProducts] = useState([]);
   const router = useRouter();
   const bannerRef = useRef(null);
 
-  const [products, setProducts] = useState([]);
-
-  useEffect(() =>
-  {
-    const fetchFeaturedProducts = async () => {
-    try {
-      // const response = await fetch('http://localhost:3001/api/products/featured');
-      const response = await fetch('https://f204f8e09b51.ngrok-free.app/api/products/featured');
-
-      
-      const data = await response.json();
-      setProducts(data);
-    } catch (error) {
-      console.error('Error fetching featured products:', error);
-    }
+  useEffect(() => {
+    // Fetch cart items count from AsyncStorage
+    const fetchCartCount = async () => {
+      try {
+        const cartData = await AsyncStorage.getItem('cart');
+        if (cartData) {
+          const cartItems = JSON.parse(cartData);
+          setCartItems(cartItems.length);
+        }
+      } catch (error) {
+        console.error('Error fetching cart count:', error);
+      }
     };
-     fetchFeaturedProducts();
+
+    fetchCartCount();
   }, []);
 
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/products/featured');
+        const data = await response.json();
+        setProducts(data);
+      } catch (error) {
+        console.error('Error fetching featured products:', error);
+      }
+    };
+    fetchFeaturedProducts();
+  }, []);
 
   const onViewRef = useRef(({ changed }) => {
     if (changed && changed[0]?.index !== undefined) {
@@ -113,113 +117,128 @@ const HomeScreen = () => {
     });
   };
 
- 
-const toggleWishlist = async (product) => {
-  try {
-    const storedWishlist = await AsyncStorage.getItem('wishlist');
-    let currentWishlist = storedWishlist ? JSON.parse(storedWishlist) : [];
+  const toggleWishlist = async (product) => {
+    try {
+      const storedWishlist = await AsyncStorage.getItem('wishlist');
+      let currentWishlist = storedWishlist ? JSON.parse(storedWishlist) : [];
 
-    const isInWishlist = currentWishlist.some(item => item.id === product.id);
-    if (isInWishlist) {
-      currentWishlist = currentWishlist.filter(item => item.id !== product.id);
-      Toast.show({
-        type: 'info',
-        text1: 'Removed from Wishlist',
-        text2: `${product.title} removed`,
-        visibilityTime: 2000,
-      });
-    } else {
-      currentWishlist.push(product);
-      Toast.show({
-        type: 'success',
-        text1: 'Added to Wishlist',
-        text2: `${product.title} added`,
-        visibilityTime: 2000,
-      });
+      const isInWishlist = currentWishlist.some(item => item.id === product.id);
+      if (isInWishlist) {
+        currentWishlist = currentWishlist.filter(item => item.id !== product.id);
+        Toast.show({
+          type: 'info',
+          text1: 'Removed from Wishlist',
+          text2: `${product.title} removed`,
+          visibilityTime: 2000,
+        });
+      } else {
+        currentWishlist.push(product);
+        Toast.show({
+          type: 'success',
+          text1: 'Added to Wishlist',
+          text2: `${product.title} added`,
+          visibilityTime: 2000,
+        });
+      }
+      await AsyncStorage.setItem('wishlist', JSON.stringify(currentWishlist));
+      setWishlist(currentWishlist);
+    } catch (error) {
+      console.error('Wishlist update failed', error);
     }
-    await AsyncStorage.setItem('wishlist', JSON.stringify(currentWishlist));
-    setWishlist(currentWishlist);
-  } catch (error) {
-    console.error('Wishlist update failed', error);
-  }
-};
-
-const isInWishlist = (productId) => wishlist.some(item => item.id === productId);
-
-  const addToCart = (product) => {
-    setCartItems(prev => prev + 1);
-    Toast.show({
-      type: 'success',
-      text1: 'Added to Cart',
-      text2: `${product.name} has been added to your cart`,
-      visibilityTime: 2000,
-    });
   };
 
-  const renderProductItem = ({ item }) => {
+  const isInWishlist = (productId) => wishlist.some(item => item.id === productId);
+
+  const addToCart = async (product) => {
+    try {
+      // Get current cart from AsyncStorage
+      const cartData = await AsyncStorage.getItem('cart');
+      let currentCart = cartData ? JSON.parse(cartData) : [];
+      
+      // Check if product already exists in cart
+      const existingItemIndex = currentCart.findIndex(item => item.id === product.id);
+      
+      if (existingItemIndex !== -1) {
+        // If exists, increase quantity
+        currentCart[existingItemIndex].quantity += 1;
+      } else {
+        // If not exists, add new item with quantity 1
+        currentCart.push({ ...product, quantity: 1 });
+      }
+      
+      // Save updated cart
+      await AsyncStorage.setItem('cart', JSON.stringify(currentCart));
+      
+      // Update cart items count
+      setCartItems(currentCart.length);
+      
+      Toast.show({
+        type: 'success',
+        text1: 'Added to Cart',
+        text2: `${product.name} has been added to your cart`,
+        visibilityTime: 2000,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
+  };
+
+  const renderProductItem = ({ item, index }) => {
     const price = item.variants?.[0]?.sizes?.[0]?.price ?? 0;
 
     return (
-    <TouchableOpacity 
-      style={styles.card} 
-      onPress={() => handleProductPress(item)} 
-      activeOpacity={0.9}
-    >
-      <View style={styles.imageContainer}>
-         {/* For Android Emulator → use http://10.0.2.2:3001 */}
-        <Image source={{ uri: `http://localhost:3001${item.image}` }}
-        // <Image source={{ uri: `https://f3ae168b7043.ngrok-free.app${item.image}` }}
-
-        
-        style={styles.image} 
-        resizeMode="cover" />
-
-        {/* {item.discountPercentage > 0 && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>-{item.discountPercentage}%</Text>
-          </View>
-        )} */}
-
-        <TouchableOpacity
-          style={styles.heartIcon}
-          onPress={(e) => {
-            e.stopPropagation();
-            toggleWishlist(item);
-          }}
-        >
-          <Ionicons
-            name={isInWishlist(item.id) ? 'heart' : 'heart-outline'}
-            size={24}
-            color={isInWishlist(item.id) ? '#FF6B6B' : 'rgba(0,0,0,0.7)'}
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => handleProductPress(item)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.imageContainer}>
+          <Image 
+            source={{ uri: `http://localhost:3001${item.image}` }}
+            style={styles.image}
+            resizeMode="cover" 
           />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.cardContent}>
-        <View style={styles.brandContainer}>
-          <Text style={styles.brandText}>{item.brand}</Text>
-        </View>
-        <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
-        {/* <Text style={styles.subtitle} numberOfLines={1}>{price}</Text> */}
-        <View style={styles.priceTopRow}>
-          <View>
-            {/* {<Text style={styles.originalPrice}>${price.toFixed(2)}</Text>} */}
-            <Text style={styles.price}>${(price).toFixed(2)}</Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.addToCartButton}
+
+          <TouchableOpacity
+            style={styles.heartIcon}
             onPress={(e) => {
               e.stopPropagation();
-              addToCart(item);
+              toggleWishlist(item);
             }}
           >
-            <Ionicons name="add" size={18} color="#FFFFFF" />
+            <Ionicons
+              name={isInWishlist(item.id) ? 'heart' : 'heart-outline'}
+              size={24}
+              color={isInWishlist(item.id) ? '#FF6B6B' : 'rgba(255,255,255,0.9)'}
+            />
           </TouchableOpacity>
         </View>
-      </View>
-    </TouchableOpacity>
+        <View style={styles.cardContent}>
+          <View style={styles.brandContainer}>
+            <Text style={styles.brandText}>{item.brand}</Text>
+          </View>
+          <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.priceTopRow}>
+            <View>
+              <Text style={styles.price}>${(price).toFixed(2)}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.viewDetailsButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                router.push({
+                  pathname: 'ProfileScreen',
+                });
+              }}
+            >
+              <Ionicons name="person-outline" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
     );
-};
+  };
 
   return (
     <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -227,24 +246,26 @@ const isInWishlist = (productId) => wishlist.some(item => item.id === productId)
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.profileContainer}>
-            <TouchableOpacity 
-              onPress={() => router.push(user.isLoggedIn ? 'ProfileScreen' : 'LoginScreen')}
+            <TouchableOpacity
+              onPress={() => router.push(user?.isLoggedIn ? 'ProfileScreen' : 'LoginScreen')}
             >
-              <Image 
-                source={{ uri: user.profileImage }} 
-                style={styles.profileImage} 
-              />
+              <View style={styles.profileImageContainer}>
+                <Image
+                  source={{ uri: user?.profileImage || 'https://ui-avatars.com/api/?name=' + (user?.name || 'Guest') + '&background=random&color=fff' }}
+                  style={styles.profileImage}
+                />
+              </View>
             </TouchableOpacity>
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcome}>Hello, Welcome 👋</Text>
-              <Text style={styles.username}>{user1?.name || 'Guest'}</Text>
+              <Text style={styles.username}>{user?.name || "Guest"}</Text>
             </View>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.cartIcon}
             onPress={() => router.push('CartScreen')}
           >
-            <Ionicons name="cart-outline" size={24} color="black" />
+            <Ionicons name="cart-outline" size={24} color="#333" />
             {cartItems > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{cartItems}</Text>
@@ -253,15 +274,24 @@ const isInWishlist = (productId) => wishlist.some(item => item.id === productId)
           </TouchableOpacity>
         </View>
 
+        {/* Search Bar */}
+        <TouchableOpacity 
+          style={styles.searchBar}
+          onPress={() => router.push('SearchScreen')}
+        >
+          <Ionicons name="search" size={20} color="#666" />
+          <Text style={styles.searchPlaceholder}>Search products...</Text>
+        </TouchableOpacity>
+
         {/* Categories */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesScroll}
         >
           {['All Items', 'Dress', 'T-Shirt', 'Jackets', 'Accessories', 'Shoes'].map((cat, i) => (
-            <TouchableOpacity 
-              key={i} 
+            <TouchableOpacity
+              key={i}
               style={i === 0 ? styles.categoryButtonActive : styles.categoryButton}
             >
               <Text style={i === 0 ? styles.categoryTextActive : styles.categoryText}>{cat}</Text>
@@ -308,13 +338,16 @@ const isInWishlist = (productId) => wishlist.some(item => item.id === productId)
 
         {/* Products */}
         <FlatList
-          data={showAllProducts ? products : products.slice(0, 4)}
+          data={showAllProducts ? products : products.slice(0, 6)}
           renderItem={renderProductItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id || item.id}
           numColumns={2}
           scrollEnabled={false}
           columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.list}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
         />
       </View>
       <Toast />
@@ -329,36 +362,52 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 20,
+    padding: width * 0.05,
     paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: height * 0.03,
   },
   profileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  profileImageContainer: {
+    width: width * 0.14,
+    height: width * 0.14,
+    borderRadius: width * 0.07,
+    marginRight: width * 0.03,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 2,
+    backgroundColor: '#6A11CB',
+  },
   profileImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
+    width: '100%',
+    height: '100%',
+    borderRadius: width * 0.065,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   welcomeContainer: {
     flexDirection: 'column',
   },
   cartIcon: {
     position: 'relative',
-    width: 40,
-    height: 40,
+    width: width * 0.12,
+    height: width * 0.12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#fff',
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   badge: {
     position: 'absolute',
@@ -378,100 +427,145 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
-  welcome: { 
-    fontSize: 14, 
+  welcome: {
+    fontSize: width * 0.035,
     color: '#666',
     fontFamily: 'Inter-Regular',
   },
-  username: { 
-    fontSize: 20, 
+  username: {
+    fontSize: width * 0.05,
     fontWeight: 'bold',
     fontFamily: 'Inter-Bold',
     color: '#1A1A1A',
   },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginBottom: height * 0.025,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchPlaceholder: {
+    marginLeft: 10,
+    color: '#999',
+    fontSize: 16,
+  },
   categoriesScroll: {
-    paddingBottom: 10,
+    paddingBottom: height * 0.01,
   },
   categoryButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: width * 0.045,
+    paddingVertical: height * 0.012,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    marginRight: 10,
+    marginRight: width * 0.025,
     borderWidth: 1,
     borderColor: '#E9ECEF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   categoryButtonActive: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: width * 0.045,
+    paddingVertical: height * 0.012,
     backgroundColor: '#1A1A1A',
     borderRadius: 20,
-    marginRight: 10,
+    marginRight: width * 0.025,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  categoryText: { 
+  categoryText: {
     color: '#666',
     fontFamily: 'Inter-Medium',
-    fontSize: 14,
+    fontSize: width * 0.035,
   },
-  categoryTextActive: { 
+  categoryTextActive: {
     color: '#FFFFFF',
     fontFamily: 'Inter-Medium',
-    fontSize: 14,
+    fontSize: width * 0.035,
   },
   bannerContainer: {
-    height: 180,
-    marginBottom: 25,
+    height: height * 0.22,
+    marginBottom: height * 0.03,
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   bannerItem: {
-    width: width - 40,
+    width: width - (width * 0.1),
     position: 'relative',
   },
   bannerImage: {
-    width: width - 40,
-    height: 180,
+    width: width - (width * 0.1),
+    height: height * 0.22,
   },
   bannerOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: width * 0.05,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
   },
   bannerTitle: {
     color: 'white',
-    fontSize: 18,
+    fontSize: width * 0.05,
     fontWeight: 'bold',
     marginBottom: 5,
     fontFamily: 'Inter-Bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   bannerSubtitle: {
     color: 'white',
-    fontSize: 14,
+    fontSize: width * 0.035,
     marginBottom: 10,
     fontFamily: 'Inter-Regular',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   bannerButton: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+    paddingVertical: height * 0.01,
+    paddingHorizontal: width * 0.035,
     borderRadius: 20,
     alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   bannerButtonText: {
     color: '#1A1A1A',
-    fontSize: 14,
+    fontSize: width * 0.035,
     fontWeight: '600',
     fontFamily: 'Inter-SemiBold',
   },
   bannerPagination: {
     position: 'absolute',
-    bottom: 15,
+    bottom: height * 0.015,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -482,37 +576,39 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginHorizontal: 4,
+    transition: 'all 0.3s ease',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: height * 0.02,
+    marginTop: height * 0.01,
   },
   sectionTitle: {
     color: '#1A1A1A',
-    fontSize: 20,
+    fontSize: width * 0.055,
     fontWeight: 'bold',
     fontFamily: 'Inter-Bold',
   },
   seeAll: {
     color: '#666',
-    fontSize: 14,
+    fontSize: width * 0.035,
     fontFamily: 'Inter-Medium',
   },
   columnWrapper: {
     justifyContent: 'space-between',
-    marginBottom: 15,
+    marginBottom: height * 0.02,
   },
   list: {
-    paddingBottom: 20,
+    paddingBottom: height * 0.03,
   },
   card: {
     width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: height * 0.02,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -523,11 +619,11 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'relative',
-    height: 180,
+    height: height * 0.2,
     overflow: 'hidden',
   },
-  image: { 
-    width: '100%', 
+  image: {
+    width: '100%',
     height: '100%',
   },
   discountBadge: {
@@ -554,17 +650,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 20,
     padding: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 2,
-    elevation: 1,
+    elevation: 2,
   },
   cardContent: {
-    padding: 14,
+    padding: width * 0.035,
   },
   brandContainer: {
     backgroundColor: '#F3F4F6',
@@ -582,15 +678,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  title: { 
-    fontSize: 15, 
+  title: {
+    fontSize: width * 0.035,
     fontWeight: '600',
     fontFamily: 'Inter-SemiBold',
     color: '#1F2937',
     marginBottom: 4,
   },
-  subtitle: { 
-    fontSize: 12, 
+  subtitle: {
+    fontSize: width * 0.03,
     color: '#6B7280',
     fontFamily: 'Inter-Regular',
     marginBottom: 10,
@@ -602,43 +698,43 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: width * 0.03,
     color: '#9CA3AF',
     textDecorationLine: 'line-through',
     fontFamily: 'Inter-Regular',
   },
-  price: { 
-    fontSize: 16, 
+  price: {
+    fontSize: width * 0.04,
     fontWeight: 'bold',
     fontFamily: 'Inter-Bold',
     color: '#111827',
   },
-  rating: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  rating: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F9FAFB',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   ratingText: {
-    fontSize: 12,
+    fontSize: width * 0.03,
     marginLeft: 4,
     fontFamily: 'Inter-Medium',
     color: '#111827',
   },
-  addToCartButton: {
-    backgroundColor: '#111827',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  viewDetailsButton: {
+    backgroundColor: '#6A11CB',
+    width: width * 0.08,
+    height: width * 0.08,
+    borderRadius: width * 0.04,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   priceTopRow: {
     flexDirection: 'row',

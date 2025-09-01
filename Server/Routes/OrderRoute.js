@@ -89,4 +89,35 @@ router.put("/update-status/:id", async (req, res) => {
   }
 });
 
+// for sale Report
+router.get("/searchByDate", async (req, res) => {
+  try {
+    const { fromDate, toDate, status } = req.query;
+
+    if (!fromDate || !toDate) {
+      return res.status(400).json({ message: "From and To dates are required" });
+    }
+
+    // Build filter
+    const filter = {
+      createdAt: {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      },
+    };
+
+    if (status && status !== "all") {
+      filter.deliveryStatus = status;
+    }
+
+    const orders = await Order.find(filter);
+
+    res.json(orders);
+  } catch (error) {
+    console.error("Error in /searchByDate:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
 module.exports = router;
