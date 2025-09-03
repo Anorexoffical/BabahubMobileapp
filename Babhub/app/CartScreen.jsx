@@ -3,9 +3,9 @@ import { StyleSheet, ScrollView, View, Text, Image, TouchableOpacity, Alert } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Checkout from './Checkout';
 
 const MAX_UNIQUE_ITEMS = 4;
+const BASE_URL = 'http://localhost:3001';
 
 const CartScreen = () => {
   const router = useRouter();
@@ -83,10 +83,13 @@ const CartScreen = () => {
           <>
             {cartItems.map((item, index) => (
               <View key={`${item.id}-${index}`} style={styles.cartItem}>
-                <Image source={item.image} style={styles.itemImage} />
+                <Image 
+                  source={{ uri: `${BASE_URL}${item.image}` }} 
+                  style={styles.itemImage} 
+                />
                 <View style={styles.itemDetails}>
                   <Text style={styles.itemTitle}>{item.title}</Text>
-                  <Text style={styles.itemType}>{item.type}</Text>
+                  <Text style={styles.itemBrand}>{item.brand || 'No Brand'}</Text>
 
                   <View style={styles.itemAttributes}>
                     <View style={styles.attribute}>
@@ -225,7 +228,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 2,
   },
-  itemType: {
+  itemBrand: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,

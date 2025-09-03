@@ -4,48 +4,38 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
-
-
 
 const WishlistScreen = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
- 
-useFocusEffect(
-  useCallback(() => {
-    const loadWishlist = async () => {
-      try {
-        const storedWishlist = await AsyncStorage.getItem('wishlist');
-        if (storedWishlist) {
-          setWishlistItems(JSON.parse(storedWishlist));
-        } else {
-          setWishlistItems([]);
-        }
-      } catch (error) {
-        console.error('Failed to load wishlist', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadWishlist();
-  }, [])
-);
-
+  useFocusEffect(
+    React.useCallback(() => {
+      loadWishlist();
+    }, [])
+  );
 
   const loadWishlist = async () => {
     try {
       const storedWishlist = await AsyncStorage.getItem('wishlist');
       if (storedWishlist) {
-        setWishlistItems(JSON.parse(storedWishlist));
+        const parsedWishlist = JSON.parse(storedWishlist);
+        // Ensure all wishlist items have proper structure
+        const validatedWishlist = parsedWishlist.map(item => ({
+          id: item.id || 'unknown-id',
+          title: item.title || 'Unknown Product',
+          brand: item.brand || 'Unknown Brand',
+          image: item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+          price: item.price || 0
+        }));
+        setWishlistItems(validatedWishlist);
       } else {
         setWishlistItems([]);
       }
     } catch (error) {
       console.error('Failed to load wishlist', error);
+      setWishlistItems([]);
     } finally {
       setLoading(false);
     }
@@ -62,7 +52,12 @@ useFocusEffect(
   };
 
   if (loading) {
-    return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#0000ff" /></View>;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>Loading wishlist...</Text>
+      </View>
+    );
   }
 
   return (
@@ -80,7 +75,10 @@ useFocusEffect(
           <Ionicons name="heart-outline" size={60} color="#ccc" style={styles.emptyIcon} />
           <Text style={styles.emptyTitle}>Your wishlist is empty</Text>
           <Text style={styles.emptyText}>Tap the heart icon to save your favorite items</Text>
-          <TouchableOpacity style={styles.continueShoppingButton} onPress={() => router.push('/(tabs)/home')}>
+          <TouchableOpacity 
+            style={styles.continueShoppingButton} 
+            onPress={() => router.push('/(tabs)/home')}
+          >
             <Text style={styles.continueShoppingText}>Continue Shopping</Text>
           </TouchableOpacity>
         </View>
@@ -92,25 +90,28 @@ useFocusEffect(
             <View style={styles.card}>
               <TouchableOpacity 
                 style={styles.productInfo}
-                onPress={() => router.push({ pathname: 'ProductDetailPage', params: { id: item.id } })}
+                onPress={() => router.push({ 
+                  pathname: 'ProductDetailPage', 
+                  params: { id: item.id } 
+                })}
               >
-                <Image source={item.image} style={styles.image} />
+                <Image 
+                  source={{ uri: item.image }} 
+                  style={styles.image} 
+                  defaultSource={{ uri: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
+                />
                 <View style={styles.info}>
                   <Text style={styles.name}>{item.title}</Text>
                   <Text style={styles.brand}>{item.brand}</Text>
                   <View style={styles.priceContainer}>
-                    {item.discountPrice ? (
-                      <>
-                        <Text style={styles.discountedPrice}>${item.discountPrice.toFixed(2)}</Text>
-                        <Text style={styles.originalPrice}>${item.price.toFixed(2)}</Text>
-                      </>
-                    ) : (
-                      <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-                    )}
+                    <Text style={styles.price}>${(item.price || 0).toFixed(2)}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.removeButton} onPress={() => removeFromWishlist(item.id)}>
+              <TouchableOpacity 
+                style={styles.removeButton} 
+                onPress={() => removeFromWishlist(item.id)}
+              >
                 <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
               </TouchableOpacity>
             </View>
@@ -122,8 +123,6 @@ useFocusEffect(
   );
 };
 
-export default WishlistScreen;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -133,6 +132,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
   },
   header: {
     flexDirection: 'row',
@@ -232,19 +236,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1A1A1A',
   },
-  discountedPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginRight: 8,
-  },
-  originalPrice: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    textDecorationLine: 'line-through',
-  },
   removeButton: {
     padding: 8,
   },
 });
 
+export default WishlistScreen;

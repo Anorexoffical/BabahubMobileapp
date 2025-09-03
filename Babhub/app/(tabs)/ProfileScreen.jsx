@@ -1,30 +1,37 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
 import { useAuth } from '../contexts/AuthContext';
+
+const { width, height } = Dimensions.get('window');
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const { user, signOut } = useAuth();
 
+  // Generate monogram from user's name
+  const getMonogram = () => {
+    if (user?.name) {
+      const names = user.name.split(' ');
+      if (names.length === 1) return names[0].charAt(0).toUpperCase();
+      return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
+    }
+    return "WM"; // Default monogram
+  };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.profileInfo}
           onPress={() => navigation.navigate('ProfileDetailsScreen')}
         >
-          <Image
-            source={{ uri: 'https://avatars.githubusercontent.com/u/9919?v=4' }}
-            style={styles.avatar}
-          />
+          <View style={styles.avatarContainer}>
+            <Text style={styles.monogram}>{getMonogram()}</Text>
+          </View>
           <View style={styles.userDetails}>
-            {/* <Text style={styles.userName}>ali khan</Text>
-            <Text style={styles.userEmail}>hafizalihaider2491@gmail.com</Text> */}
             <Text style={styles.userName}>{user?.name || "Guest"}</Text>
             <Text style={styles.userEmail}>{user?.email || "Not logged in"}</Text>
           </View>
@@ -64,9 +71,6 @@ const ProfileScreen = () => {
         />
       </View>
 
-      {/* <TouchableOpacity style={styles.logoutButton}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity> */}
       <TouchableOpacity
         style={styles.logoutButton}
         onPress={async () => {
@@ -82,64 +86,124 @@ const ProfileScreen = () => {
 
 const MenuItem = ({ icon, title, subtitle, onPress }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-    <Ionicons name={icon} size={24} color="#264653" />
+    <View style={styles.iconContainer}>
+      <Ionicons name={icon} size={24} color="#000" />
+    </View>
     <View style={styles.menuText}>
       <Text style={styles.menuTitle}>{title}</Text>
       <Text style={styles.menuSubtitle}>{subtitle}</Text>
     </View>
-    <Ionicons name="chevron-forward" size={18} color="#ccc" />
+    <Ionicons name="chevron-forward" size={18} color="#000" />
   </TouchableOpacity>
 );
 
 export default ProfileScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff',
+  },
   header: {
-    backgroundColor: '#264653',
-    padding: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    flexDirection: 'row',
+    backgroundColor: '#000',
+    padding: width * 0.06,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    paddingTop: height * 0.05,
+    paddingBottom: height * 0.04,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  profileInfo: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  avatarContainer: {
+    height: width * 0.18,
+    width: width * 0.18,
+    borderRadius: width * 0.09,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    borderWidth: 2,
+    borderColor: '#000',
   },
-  profileInfo: { flexDirection: 'row', alignItems: 'center' },
-  avatar: {
-    height: 60,
-    width: 60,
-    borderRadius: 30,
-    backgroundColor: '#ccc',
-  },
-  userDetails: { marginLeft: 15 },
-  userName: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  userEmail: { color: '#eee', fontSize: 14 },
-  section: { padding: 20 },
-  sectionTitle: {
-    fontSize: 16,
+  monogram: {
+    fontSize: width * 0.06,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    color: '#000',
+  },
+  userDetails: { 
+    marginLeft: width * 0.04 
+  },
+  userName: { 
+    color: '#fff', 
+    fontSize: width * 0.05, 
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  userEmail: { 
+    color: '#ddd', 
+    fontSize: width * 0.035,
+  },
+  section: { 
+    padding: width * 0.05,
+    marginTop: height * 0.02,
+  },
+  sectionTitle: {
+    fontSize: width * 0.045,
+    fontWeight: 'bold',
+    marginBottom: height * 0.03,
+    color: '#000',
+    letterSpacing: 0.5,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: height * 0.03,
+    paddingVertical: height * 0.01,
+    paddingHorizontal: width * 0.03,
+    borderRadius: 12,
+    backgroundColor: '#f8f8f8',
+  },
+  iconContainer: {
+    backgroundColor: '#fff',
+    padding: width * 0.025,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   menuText: {
     flex: 1,
-    marginLeft: 15,
+    marginLeft: width * 0.04,
   },
-  menuTitle: { fontSize: 16, fontWeight: '600', color: '#000' },
-  menuSubtitle: { fontSize: 13, color: '#777', marginTop: 2 },
+  menuTitle: { 
+    fontSize: width * 0.04, 
+    fontWeight: '600', 
+    color: '#000',
+    marginBottom: 2,
+  },
+  menuSubtitle: { 
+    fontSize: width * 0.032, 
+    color: '#666',
+  },
   logoutButton: {
-    marginHorizontal: 20,
-    borderWidth: 1,
+    marginHorizontal: width * 0.05,
+    borderWidth: 2,
     borderColor: '#000',
-    paddingVertical: 12,
+    paddingVertical: height * 0.02,
     alignItems: 'center',
-    borderRadius: 10,
-    marginBottom: 30,
+    borderRadius: 12,
+    marginBottom: height * 0.05,
+    marginTop: height * 0.01,
+    backgroundColor: '#000',
   },
-  logoutText: { fontSize: 16, fontWeight: 'bold', color: '#000' },
+  logoutText: { 
+    fontSize: width * 0.04, 
+    fontWeight: 'bold', 
+    color: '#fff',
+  },
 });

@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  Platform,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -16,13 +18,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
-
-// Sample user data
-const defaultUser = {
-  isLoggedIn: false,
-  name: 'Guest',
-  profileImage: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-};
 
 const banners = [
   {
@@ -62,6 +57,64 @@ const BannerItem = ({ item, router }) => (
   </View>
 );
 
+// Product Item Component
+const ProductItem = ({ item, onPress, onWishlistToggle, isInWishlist }) => {
+  // Safely handle price with fallback - using the API structure
+  const price = item.variants?.[0]?.sizes?.[0]?.price || 0;
+  
+  return (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => onPress(item)}
+      activeOpacity={0.9}
+    >
+      <View style={styles.imageContainer}>
+        <Image 
+          source={{ uri: `http://localhost:3001${item.image}` }} 
+          style={styles.image}
+          resizeMode="cover" 
+          defaultSource={{ uri: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
+        />
+
+        <TouchableOpacity
+          style={styles.heartIcon}
+          onPress={(e) => {
+            e.stopPropagation();
+            onWishlistToggle(item);
+          }}
+        >
+          <Ionicons
+            name={isInWishlist ? 'heart' : 'heart-outline'}
+            size={24}
+            color={isInWishlist ? '#FF6B6B' : 'rgba(0,0,0,0.7)'}
+          />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.cardContent}>
+        <View style={styles.brandContainer}>
+          <Text style={styles.brandText}>{item.brand || 'Unknown Brand'}</Text>
+        </View>
+        <Text style={styles.title} numberOfLines={1}>{item.name || 'Unnamed Product'}</Text>
+        <View style={styles.priceTopRow}>
+          <View>
+            <Text style={styles.price}>${(price).toFixed(2)}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.viewDetailButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              onPress(item);
+            }}
+          >
+            <Ionicons name="eye" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 const HomeScreen = () => {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState(0);
@@ -69,11 +122,11 @@ const HomeScreen = () => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const bannerRef = useRef(null);
 
   useEffect(() => {
-    // Fetch cart items count from AsyncStorage
     const fetchCartCount = async () => {
       try {
         const cartData = await AsyncStorage.getItem('cart');
@@ -90,13 +143,43 @@ const HomeScreen = () => {
   }, []);
 
   useEffect(() => {
+    const fetchWishlist = async () => {
+      try {
+        const wishlistData = await AsyncStorage.getItem('wishlist');
+        if (wishlistData) {
+          setWishlist(JSON.parse(wishlistData));
+        }
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+      }
+    };
+
+    fetchWishlist();
+  }, []);
+
+  useEffect(() => {
     const fetchFeaturedProducts = async () => {
       try {
+        setLoading(true);
         const response = await fetch('http://localhost:3001/api/products/featured');
         const data = await response.json();
+        
+        // Use the API data directly without modifying the structure
         setProducts(data);
       } catch (error) {
         console.error('Error fetching featured products:', error);
+        // Fallback data for testing with the same structure as API
+        setProducts([
+          {
+            _id: '1',
+            name: 'Sample Product',
+            brand: 'Sample Brand',
+            image: '/images/sample.jpg',
+            variants: [{ sizes: [{ price: 29.99 }] }]
+          }
+        ]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchFeaturedProducts();
@@ -119,126 +202,79 @@ const HomeScreen = () => {
 
   const toggleWishlist = async (product) => {
     try {
+      // Get price from API structure
+      const price = product.variants?.[0]?.sizes?.[0]?.price || 0;
+      
+      // Create a wishlist item with consistent structure
+      const wishlistItem = {
+        id: product._id,
+        title: product.name,
+        brand: product.brand,
+        image: `http://localhost:3001${product.image}`,
+        price: price
+      };
+
       const storedWishlist = await AsyncStorage.getItem('wishlist');
       let currentWishlist = storedWishlist ? JSON.parse(storedWishlist) : [];
 
-      const isInWishlist = currentWishlist.some(item => item.id === product.id);
+      const isInWishlist = currentWishlist.some(item => item.id === wishlistItem.id);
+      
       if (isInWishlist) {
-        currentWishlist = currentWishlist.filter(item => item.id !== product.id);
+        currentWishlist = currentWishlist.filter(item => item.id !== wishlistItem.id);
         Toast.show({
           type: 'info',
           text1: 'Removed from Wishlist',
-          text2: `${product.title} removed`,
+          text2: `${wishlistItem.title} removed`,
           visibilityTime: 2000,
         });
       } else {
-        currentWishlist.push(product);
+        currentWishlist.push(wishlistItem);
         Toast.show({
           type: 'success',
           text1: 'Added to Wishlist',
-          text2: `${product.title} added`,
+          text2: `${wishlistItem.title} added`,
           visibilityTime: 2000,
         });
       }
+      
       await AsyncStorage.setItem('wishlist', JSON.stringify(currentWishlist));
       setWishlist(currentWishlist);
     } catch (error) {
       console.error('Wishlist update failed', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update wishlist',
+        visibilityTime: 2000,
+      });
     }
   };
 
-  const isInWishlist = (productId) => wishlist.some(item => item.id === productId);
-
-  const addToCart = async (product) => {
-    try {
-      // Get current cart from AsyncStorage
-      const cartData = await AsyncStorage.getItem('cart');
-      let currentCart = cartData ? JSON.parse(cartData) : [];
-      
-      // Check if product already exists in cart
-      const existingItemIndex = currentCart.findIndex(item => item.id === product.id);
-      
-      if (existingItemIndex !== -1) {
-        // If exists, increase quantity
-        currentCart[existingItemIndex].quantity += 1;
-      } else {
-        // If not exists, add new item with quantity 1
-        currentCart.push({ ...product, quantity: 1 });
-      }
-      
-      // Save updated cart
-      await AsyncStorage.setItem('cart', JSON.stringify(currentCart));
-      
-      // Update cart items count
-      setCartItems(currentCart.length);
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Added to Cart',
-        text2: `${product.name} has been added to your cart`,
-        visibilityTime: 2000,
-      });
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-    }
+  const isInWishlist = (productId) => {
+    return wishlist.some(item => item.id === productId);
   };
 
   const renderProductItem = ({ item, index }) => {
-    const price = item.variants?.[0]?.sizes?.[0]?.price ?? 0;
-
+    const productInWishlist = isInWishlist(item._id);
+    
     return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => handleProductPress(item)}
-        activeOpacity={0.9}
-      >
-        <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: `http://localhost:3001${item.image}` }}
-            style={styles.image}
-            resizeMode="cover" 
-          />
-
-          <TouchableOpacity
-            style={styles.heartIcon}
-            onPress={(e) => {
-              e.stopPropagation();
-              toggleWishlist(item);
-            }}
-          >
-            <Ionicons
-              name={isInWishlist(item.id) ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isInWishlist(item.id) ? '#FF6B6B' : 'rgba(255,255,255,0.9)'}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.cardContent}>
-          <View style={styles.brandContainer}>
-            <Text style={styles.brandText}>{item.brand}</Text>
-          </View>
-          <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
-          <View style={styles.priceTopRow}>
-            <View>
-              <Text style={styles.price}>${(price).toFixed(2)}</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.viewDetailsButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                router.push({
-                  pathname: 'ProfileScreen',
-                });
-              }}
-            >
-              <Ionicons name="person-outline" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
+      <ProductItem 
+        item={item}
+        onPress={handleProductPress}
+        onWishlistToggle={toggleWishlist}
+        isInWishlist={productInWishlist}
+      />
     );
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>Loading products...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -247,41 +283,47 @@ const HomeScreen = () => {
         <View style={styles.header}>
           <View style={styles.profileContainer}>
             <TouchableOpacity
-              onPress={() => router.push(user?.isLoggedIn ? 'ProfileScreen' : 'LoginScreen')}
+              onPress={() => router.push(user?.isLoggedIn ? 'ProfileScreen' : 'ProfileScreen')}
             >
-              <View style={styles.profileImageContainer}>
-                <Image
-                  source={{ uri: user?.profileImage || 'https://ui-avatars.com/api/?name=' + (user?.name || 'Guest') + '&background=random&color=fff' }}
-                  style={styles.profileImage}
-                />
-              </View>
+              <Image
+                source={{ uri: user?.profileImage || 'https://ui-avatars.com/api/?name=' + (user?.name || 'Guest') + '&background=random' }}
+                style={styles.profileImage}
+              />
             </TouchableOpacity>
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcome}>Hello, Welcome 👋</Text>
               <Text style={styles.username}>{user?.name || "Guest"}</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.cartIcon}
-            onPress={() => router.push('CartScreen')}
-          >
-            <Ionicons name="cart-outline" size={24} color="#333" />
-            {cartItems > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{cartItems}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity
+              style={styles.wishlistIcon}
+              onPress={() => router.push('WishlistScreen')}
+            >
+              <Ionicons
+                name={wishlist.length > 0 ? 'heart' : 'heart-outline'}
+                size={24}
+                color={wishlist.length > 0 ? '#FF6B6B' : 'black'}
+              />
+              {wishlist.length > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{wishlist.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cartIcon}
+              onPress={() => router.push('CartScreen')}
+            >
+              <Ionicons name="cart-outline" size={24} color="black" />
+              {cartItems > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{cartItems}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-
-        {/* Search Bar */}
-        <TouchableOpacity 
-          style={styles.searchBar}
-          onPress={() => router.push('SearchScreen')}
-        >
-          <Ionicons name="search" size={20} color="#666" />
-          <Text style={styles.searchPlaceholder}>Search products...</Text>
-        </TouchableOpacity>
 
         {/* Categories */}
         <ScrollView
@@ -291,8 +333,11 @@ const HomeScreen = () => {
         >
           {['All Items', 'Dress', 'T-Shirt', 'Jackets', 'Accessories', 'Shoes'].map((cat, i) => (
             <TouchableOpacity
-              key={i}
+              key={cat}
               style={i === 0 ? styles.categoryButtonActive : styles.categoryButton}
+              onPress={() => {
+                console.log(`Selected category: ${cat}`);
+              }}
             >
               <Text style={i === 0 ? styles.categoryTextActive : styles.categoryText}>{cat}</Text>
             </TouchableOpacity>
@@ -337,18 +382,25 @@ const HomeScreen = () => {
         </View>
 
         {/* Products */}
-        <FlatList
-          data={showAllProducts ? products : products.slice(0, 6)}
-          renderItem={renderProductItem}
-          keyExtractor={(item) => item._id || item.id}
-          numColumns={2}
-          scrollEnabled={false}
-          columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={styles.list}
-          initialNumToRender={6}
-          maxToRenderPerBatch={6}
-          windowSize={5}
-        />
+        {products.length > 0 ? (
+          <FlatList
+            data={showAllProducts ? products : products.slice(0, 6)}
+            renderItem={renderProductItem}
+            keyExtractor={(item) => item._id}
+            numColumns={2}
+            scrollEnabled={false}
+            columnWrapperStyle={styles.columnWrapper}
+            contentContainerStyle={styles.list}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
+        ) : (
+          <View style={styles.noProductsContainer}>
+            <Ionicons name="alert-circle-outline" size={50} color="#ccc" />
+            <Text style={styles.noProductsText}>No products available</Text>
+          </View>
+        )}
       </View>
       <Toast />
     </ScrollView>
@@ -365,6 +417,27 @@ const styles = StyleSheet.create({
     padding: width * 0.05,
     paddingBottom: 40,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+  },
+  noProductsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  noProductsText: {
+    marginTop: 10,
+    color: '#666',
+    fontSize: 16,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -375,39 +448,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  profileImageContainer: {
-    width: width * 0.14,
-    height: width * 0.14,
-    borderRadius: width * 0.07,
-    marginRight: width * 0.03,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 2,
-    backgroundColor: '#6A11CB',
-  },
   profileImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: width * 0.065,
-    borderWidth: 2,
-    borderColor: '#fff',
+    width: width * 0.12,
+    height: width * 0.12,
+    borderRadius: width * 0.06,
+    marginRight: width * 0.03,
   },
   welcomeContainer: {
     flexDirection: 'column',
   },
-  cartIcon: {
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  wishlistIcon: {
     position: 'relative',
-    width: width * 0.12,
-    height: width * 0.12,
+    width: width * 0.1,
+    height: width * 0.1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    marginRight: 10,
+  },
+  cartIcon: {
+    position: 'relative',
+    width: width * 0.1,
+    height: width * 0.1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   badge: {
     position: 'absolute',
@@ -430,32 +499,11 @@ const styles = StyleSheet.create({
   welcome: {
     fontSize: width * 0.035,
     color: '#666',
-    fontFamily: 'Inter-Regular',
   },
   username: {
     fontSize: width * 0.05,
     fontWeight: 'bold',
-    fontFamily: 'Inter-Bold',
     color: '#1A1A1A',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    marginBottom: height * 0.025,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  searchPlaceholder: {
-    marginLeft: 10,
-    color: '#999',
-    fontSize: 16,
   },
   categoriesScroll: {
     paddingBottom: height * 0.01,
@@ -468,11 +516,6 @@ const styles = StyleSheet.create({
     marginRight: width * 0.025,
     borderWidth: 1,
     borderColor: '#E9ECEF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   categoryButtonActive: {
     paddingHorizontal: width * 0.045,
@@ -480,20 +523,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A1A',
     borderRadius: 20,
     marginRight: width * 0.025,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   categoryText: {
     color: '#666',
-    fontFamily: 'Inter-Medium',
     fontSize: width * 0.035,
   },
   categoryTextActive: {
     color: '#FFFFFF',
-    fontFamily: 'Inter-Medium',
     fontSize: width * 0.035,
   },
   bannerContainer: {
@@ -502,11 +538,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
   bannerItem: {
     width: width - (width * 0.1),
@@ -522,28 +553,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: width * 0.05,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     borderBottomLeftRadius: 16,
     borderBottomRightRadius: 16,
   },
   bannerTitle: {
     color: 'white',
-    fontSize: width * 0.05,
+    fontSize: width * 0.045,
     fontWeight: 'bold',
     marginBottom: 5,
-    fontFamily: 'Inter-Bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
   bannerSubtitle: {
     color: 'white',
     fontSize: width * 0.035,
     marginBottom: 10,
-    fontFamily: 'Inter-Regular',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
   bannerButton: {
     backgroundColor: '#FFFFFF',
@@ -551,17 +574,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.035,
     borderRadius: 20,
     alignSelf: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   bannerButtonText: {
     color: '#1A1A1A',
     fontSize: width * 0.035,
     fontWeight: '600',
-    fontFamily: 'Inter-SemiBold',
   },
   bannerPagination: {
     position: 'absolute',
@@ -576,25 +593,21 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginHorizontal: 4,
-    transition: 'all 0.3s ease',
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: height * 0.02,
-    marginTop: height * 0.01,
   },
   sectionTitle: {
     color: '#1A1A1A',
-    fontSize: width * 0.055,
+    fontSize: width * 0.05,
     fontWeight: 'bold',
-    fontFamily: 'Inter-Bold',
   },
   seeAll: {
     color: '#666',
     fontSize: width * 0.035,
-    fontFamily: 'Inter-Medium',
   },
   columnWrapper: {
     justifyContent: 'space-between',
@@ -609,11 +622,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: height * 0.02,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    // Use Platform-specific shadow handling
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.1)',
+      }
+    }),
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },
@@ -626,38 +649,28 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  discountBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 12,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  discountText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'Inter-Bold',
-  },
   heartIcon: {
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 20,
     padding: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    // Use Platform-specific shadow handling
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 1,
+      },
+      web: {
+        boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.1)',
+      }
+    }),
   },
   cardContent: {
     padding: width * 0.035,
@@ -674,67 +687,42 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#4B5563',
-    fontFamily: 'Inter-SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   title: {
     fontSize: width * 0.035,
     fontWeight: '600',
-    fontFamily: 'Inter-SemiBold',
     color: '#1F2937',
     marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: width * 0.03,
-    color: '#6B7280',
-    fontFamily: 'Inter-Regular',
-    marginBottom: 10,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  originalPrice: {
-    fontSize: width * 0.03,
-    color: '#9CA3AF',
-    textDecorationLine: 'line-through',
-    fontFamily: 'Inter-Regular',
   },
   price: {
     fontSize: width * 0.04,
     fontWeight: 'bold',
-    fontFamily: 'Inter-Bold',
     color: '#111827',
   },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  ratingText: {
-    fontSize: width * 0.03,
-    marginLeft: 4,
-    fontFamily: 'Inter-Medium',
-    color: '#111827',
-  },
-  viewDetailsButton: {
-    backgroundColor: '#6A11CB',
+  viewDetailButton: {
+    backgroundColor: '#000000',
     width: width * 0.08,
     height: width * 0.08,
     borderRadius: width * 0.04,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    // Use Platform-specific shadow handling
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+      }
+    }),
   },
   priceTopRow: {
     flexDirection: 'row',

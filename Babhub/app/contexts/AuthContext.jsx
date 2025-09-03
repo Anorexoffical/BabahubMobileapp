@@ -1,70 +1,3 @@
-// // app/contexts/AuthContext.jsx
-// import React, { createContext, useState, useContext, useEffect } from 'react';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// const AuthContext = createContext();
-
-// export const useAuth = () => {
-//   return useContext(AuthContext);
-// };
-
-// export const AuthProvider = ({ children }) => {
-//   const [userToken, setUserToken] = useState(null);
-//   const [userEmail, setUserEmail] = useState(null);
-//   const [isLoading, setIsLoading] = useState(true);
-
-//   useEffect(() => {
-//     // Check if user is logged in on app start
-//     const bootstrapAsync = async () => {
-//       let token, email;
-//       try {
-//         token = await AsyncStorage.getItem('userToken');
-//         email = await AsyncStorage.getItem('userEmail');
-//       } catch (e) {
-//         console.error('Failed to restore auth data', e);
-//       }
-//       setUserToken(token);
-//       setUserEmail(email);
-//       setIsLoading(false);
-//     };
-
-//     bootstrapAsync();
-//   }, []);
-
-//   const authContext = {
-//     signIn: async (token, email) => {
-//       setUserToken(token);
-//       setUserEmail(email);
-//       try {
-//         await AsyncStorage.setItem('userToken', token);
-//         await AsyncStorage.setItem('userEmail', email);
-//       } catch (e) {
-//         console.error('Failed to save auth data', e);
-//       }
-//     },
-//     signOut: async () => {
-//       setUserToken(null);
-//       setUserEmail(null);
-//       try {
-//         await AsyncStorage.removeItem('userToken');
-//         await AsyncStorage.removeItem('userEmail');
-//       } catch (e) {
-//         console.error('Failed to remove auth data', e);
-//       }
-//     },
-//     userToken,
-//     userEmail,
-//     isLoading,
-//   };
-
-//   return (
-//     <AuthContext.Provider value={authContext}>
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };
-
-// app/contexts/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -76,14 +9,14 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
-  const [user, setUser] = useState(null); // 👈 store the whole user object
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
         const token = await AsyncStorage.getItem('userToken');
-        const userJson = await AsyncStorage.getItem('user'); // 👈 retrieve user
+        const userJson = await AsyncStorage.getItem('user');
         setUserToken(token);
         setUser(userJson ? JSON.parse(userJson) : null);
       } catch (e) {
@@ -96,12 +29,12 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const authContext = {
-    signIn: async (token, userData) => { // 👈 accept full user object
+    signIn: async (token, userData) => {
       setUserToken(token);
       setUser(userData);
       try {
         await AsyncStorage.setItem('userToken', token);
-        await AsyncStorage.setItem('user', JSON.stringify(userData)); // 👈 save user
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
       } catch (e) {
         console.error('Failed to save auth data', e);
       }
@@ -127,3 +60,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export default AuthContext;

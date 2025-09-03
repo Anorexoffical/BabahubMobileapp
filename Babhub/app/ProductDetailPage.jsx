@@ -167,9 +167,7 @@ const ProductDetailPage = () => {
 
           {/* Price */}
           <View style={styles.priceContainer}>
-            <Text style={styles.originalPrice}>${price.toFixed(2)}</Text>
-            <Text style={styles.price}>${(price).toFixed(2)}</Text>
-            
+            <Text style={styles.price}>${price.toFixed(2)}</Text>
           </View>
 
           <View style={styles.divider} />
@@ -233,10 +231,14 @@ const ProductDetailPage = () => {
           <View style={styles.quantityContainer}>
             <Text style={styles.quantityLabel}>Quantity</Text>
             <View style={styles.quantityControl}>
-              <TouchableOpacity onPress={handleDecrement} disabled={quantity <= 1} style={styles.quantityButton}>
-                <Ionicons name="remove" size={22} color="#fff" />
+              <TouchableOpacity 
+                onPress={handleDecrement} 
+                disabled={quantity <= 1} 
+                style={[styles.quantityButton, quantity <= 1 && styles.disabledQuantityButton]}
+              >
+                <Ionicons name="remove" size={22} color={quantity <= 1 ? "#999" : "#fff"} />
               </TouchableOpacity>
-              <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+              <Animated.View style={[styles.quantityDisplay, { transform: [{ scale: scaleValue }] }]}>
                 <Text style={styles.quantityText}>{quantity}</Text>
               </Animated.View>
               <TouchableOpacity onPress={handleIncrement} style={styles.quantityButton}>
@@ -286,25 +288,12 @@ const styles = StyleSheet.create({
     width: '100%', 
     height: '100%' 
   },
-  discountBadge: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: '#FF3E3E',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    zIndex: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  discountBadgeText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
+  noImage: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0'
   },
   backButton: {
     position: 'absolute',
@@ -323,7 +312,7 @@ const styles = StyleSheet.create({
   favoriteButton: {
     position: 'absolute',
     top: 20,
-    right: 60,
+    right: 20,
     backgroundColor: 'rgba(255,255,255,0.8)',
     borderRadius: 20,
     padding: 8,
@@ -354,64 +343,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontWeight: '500',
   },
-  ratingContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 15 
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    marginRight: 8,
-  },
-  ratingText: { 
-    fontSize: 15, 
-    color: '#666',
-    fontWeight: '500',
-  },
   priceContainer: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     marginBottom: 15,
-    flexWrap: 'wrap',
   },
-  originalPrice: {
-    textDecorationLine: 'line-through',
-    color: '#999',
-    marginRight: 12,
-    fontSize: 16,
-  },
-  discountedPrice: { 
+  price: { 
     fontSize: 30, 
     fontWeight: '700', 
     color: '#000',
-    marginRight: 12,
-  },
-  savingsTag: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginTop: 5,
-  },
-  savingsText: {
-    color: '#2E7D32',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  section: {
-    marginBottom: 25,
-  },
-  sectionTitle: { 
-    fontSize: 20, 
-    fontWeight: '700', 
-    marginBottom: 15,
-    color: '#333',
-  },
-  description: { 
-    fontSize: 15, 
-    color: '#666', 
-    lineHeight: 24, 
-    marginBottom: 20,
   },
   divider: {
     height: 1,
@@ -444,15 +384,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#000',
   },
-  colorCheckmark: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 1,
-  },
   sizeOptions: {
     flexDirection: 'row',
     gap: 12,
+    flexWrap: 'wrap',
   },
   sizeOption: {
     width: 50,
@@ -476,18 +411,20 @@ const styles = StyleSheet.create({
   selectedSizeText: {
     color: '#fff',
   },
-  featuresContainer: {
-    gap: 15,
+  section: {
+    marginBottom: 25,
   },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  sectionTitle: { 
+    fontSize: 20, 
+    fontWeight: '700', 
+    marginBottom: 15,
+    color: '#333',
   },
-  featureText: {
-    fontSize: 15,
-    color: '#555',
-    fontWeight: '500',
+  description: { 
+    fontSize: 15, 
+    color: '#666', 
+    lineHeight: 24, 
+    marginBottom: 20,
   },
   quantityContainer: {
     flexDirection: 'row',
@@ -520,20 +457,10 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000',
   },
-  buttonInner: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#4c4c4c',
-  },
-  quantityButtonLeft: {
-    backgroundColor: 'transparent',
-  },
-  quantityButtonRight: {
-    backgroundColor: 'transparent',
+  disabledQuantityButton: {
+    backgroundColor: '#ccc',
   },
   quantityDisplay: {
     width: 60,
@@ -547,24 +474,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
   },
-  buttonContainer: { 
+  addToCartButton: {
     position: 'absolute',
     bottom: 20,
     left: 20,
     right: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  addToCartButton: {
     backgroundColor: '#000',
     padding: 18,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
   },
   disabledButton: {
     backgroundColor: '#ccc',
