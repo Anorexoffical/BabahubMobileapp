@@ -7,16 +7,34 @@ import {
   FaUsers,
   FaBars,
   FaTimes,
-  FaChevronDown
+  FaChevronDown,
+  FaUser,
+  FaCog,
+  FaSignOutAlt,
+  FaPowerOff
 } from 'react-icons/fa';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import '../Style/Topbar.css';
 
-const Topbar = ({ onItemClick }) => {
+const Topbar = ({ onLogout, userName }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState('');
   const dropdownRef = useRef(null);
+
+  // Get user name from localStorage and props, and update when they change
+  useEffect(() => {
+    const savedUserName = localStorage.getItem('userName');
+    if (userName) {
+      setCurrentUserName(userName);
+    } else if (savedUserName) {
+      setCurrentUserName(savedUserName);
+    } else {
+      setCurrentUserName('User');
+    }
+  }, [userName]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -34,6 +52,34 @@ const Topbar = ({ onItemClick }) => {
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => setMenuOpen(false);
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+
+  const handleLogout = () => {
+    // Clear all authentication data from localStorage
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userData');
+    localStorage.removeItem('token');
+    localStorage.removeItem('isLoggedIn');
+    
+    // Clear all authentication data from sessionStorage
+    sessionStorage.removeItem('userName');
+    sessionStorage.removeItem('userData');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('isLoggedIn');
+    
+    // Reset user name state
+    setCurrentUserName('User');
+    
+    // Close dropdown
+    setDropdownOpen(false);
+    
+    // Call parent logout handler if provided
+    if (onLogout) {
+      onLogout();
+    }
+    
+    // Redirect to login page
+    navigate('/login');
+  };
 
   return (
     <div className="topbar">
@@ -55,7 +101,7 @@ const Topbar = ({ onItemClick }) => {
         <Link 
           to="/dashboard" 
           className={`menu-item ${location.pathname === '/dashboard' ? 'active' : ''}`} 
-          onClick={() => { onItemClick && onItemClick(); closeMenu(); }}
+          onClick={closeMenu}
         >
           <FaTachometerAlt className="menu-icon" />
           <span>Dashboard</span>
@@ -64,7 +110,7 @@ const Topbar = ({ onItemClick }) => {
         <Link 
           to="/products" 
           className={`menu-item ${location.pathname === '/products' ? 'active' : ''}`} 
-          onClick={() => { onItemClick && onItemClick(); closeMenu(); }}
+          onClick={closeMenu}
         >
           <FaBoxes className="menu-icon" />
           <span>Products</span>
@@ -73,7 +119,7 @@ const Topbar = ({ onItemClick }) => {
         <Link 
           to="/orders" 
           className={`menu-item ${location.pathname === '/orders' ? 'active' : ''}`} 
-          onClick={() => { onItemClick && onItemClick(); closeMenu(); }}
+          onClick={closeMenu}
         >
           <FaShoppingBag className="menu-icon" />
           <span>Orders</span>
@@ -83,7 +129,7 @@ const Topbar = ({ onItemClick }) => {
         <Link 
           to="/customers" 
           className={`menu-item ${location.pathname === '/customers' ? 'active' : ''}`} 
-          onClick={() => { onItemClick && onItemClick(); closeMenu(); }}
+          onClick={closeMenu}
         >
           <FaUsers className="menu-icon" />
           <span>Customers</span>
@@ -92,7 +138,7 @@ const Topbar = ({ onItemClick }) => {
         <Link 
           to="/reports" 
           className={`menu-item ${location.pathname === '/reports' ? 'active' : ''}`} 
-          onClick={() => { onItemClick && onItemClick(); closeMenu(); }}
+          onClick={closeMenu}
         >
           <FaChartLine className="menu-icon" />
           <span>Reports</span>
@@ -102,6 +148,15 @@ const Topbar = ({ onItemClick }) => {
 
       {/* Right Side Controls */}
       <div className="topbar-right">
+        {/* Logout Button */}
+        <button 
+          className="logout-btn" 
+          onClick={handleLogout}
+          title="Logout"
+        >
+          <FaPowerOff />
+        </button>
+
         {/* User Profile Dropdown */}
         <div className="dropdown-container" ref={dropdownRef}>
           <div className="user-profile" onClick={toggleDropdown}>
@@ -111,7 +166,7 @@ const Topbar = ({ onItemClick }) => {
               className="user-avatar" 
             />
             <div className="user-info">
-              <div className="user-name">Super-Admin</div>
+              <div className="user-name">{currentUserName}</div>
               <small className="user-role">Admin</small>
             </div>
             <FaChevronDown className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`} />
@@ -119,10 +174,26 @@ const Topbar = ({ onItemClick }) => {
           
           {dropdownOpen && (
             <div className="dropdown-menu">
-              <Link to="/profile" className="dropdown-item">My Profile</Link>
-              <Link to="/settings" className="dropdown-item">Settings</Link>
+              <div className="dropdown-header">
+                <div className="dropdown-user-info">
+                  <div className="dropdown-user-name">{currentUserName}</div>
+                  <div className="dropdown-user-email">admin@babahub.com</div>
+                </div>
+              </div>
               <div className="dropdown-divider"></div>
-              <button className="dropdown-item logout">Log Out</button>
+              <Link to="/profile" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
+                <FaUser className="dropdown-icon" />
+                <span>My Profile</span>
+              </Link>
+              <Link to="/settings" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
+                <FaCog className="dropdown-icon" />
+                <span>Settings</span>
+              </Link>
+              <div className="dropdown-divider"></div>
+              <button className="dropdown-item logout" onClick={handleLogout}>
+                <FaSignOutAlt className="dropdown-icon" />
+                <span>Log Out</span>
+              </button>
             </div>
           )}
         </div>

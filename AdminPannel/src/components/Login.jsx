@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from "../assets/logo.png";
-import '../Style/login.css';
+import '../Style/Login.css';
 
-// Custom Toast
+// Custom Toast Component
 const CustomToast = ({ message, type = 'warning', onClose }) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -65,7 +65,11 @@ const Login = ({ onLogin }) => {
         role: "admin"
       });
 
-      // Save session
+      // Save to localStorage for persistent authentication
+      localStorage.setItem('userName', response.data.user.name);
+      localStorage.setItem('userData', JSON.stringify(response.data.user));
+      
+      // Call the onLogin callback
       onLogin(response.data.user.name);
 
       navigate('/dashboard');
@@ -124,7 +128,14 @@ const Login = ({ onLogin }) => {
               </div>
               <div className="d-grid">
                 <button type="submit" className="btn btn-dark btn-lg mb-3 custom-button" disabled={isLoading}>
-                  {isLoading ? 'Logging in...' : 'Log in'}
+                  {isLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Logging in...
+                    </>
+                  ) : (
+                    'Log in'
+                  )}
                 </button>
               </div>
               <a href="./" className="text-decoration-none text-primary d-block text-center mb-3">

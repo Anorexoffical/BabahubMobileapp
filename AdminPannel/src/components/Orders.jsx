@@ -12,7 +12,7 @@ import {
   FiChevronRight,
   FiFilter
 } from 'react-icons/fi';
-import { Table, Pagination, Badge, Form, Button, Card, Alert } from 'react-bootstrap';
+import { Table, Pagination, Badge, Form, Button, Card, Alert, Modal } from 'react-bootstrap';
 import Topbar from './Topbar';
 import '../Style/Orders.css';
 import axios from 'axios';
@@ -181,7 +181,6 @@ const Orders = () => {
                   {currentOrders.length > 0 ? (
                     currentOrders.map(order => (
                       <tr key={order._id}>
-                        {/* <td>{order.orderID}</td> */}
                         <td>{order.orderID.split("-").slice(0, 2).join("-")}</td>
                         <td>
                           <div className="d-flex align-items-center">
@@ -270,111 +269,108 @@ const Orders = () => {
           </>
         )}
 
-        {/* Order Details Modal */}
-        {selectedOrder && (
-          <div className={`modal fade ${showDetails ? 'show d-block' : ''}`} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Order Details - {selectedOrder.orderID}</h5>
-                  <button type="button" className="btn-close" onClick={handleCloseDetails}></button>
-                </div>
-                <div className="modal-body">
-                  <div className="row mb-4">
-                    <div className="col-md-6">
-                      <Card>
-                        <Card.Header className="d-flex align-items-center">
-                          <FiUser className="me-2" />
-                          <span>Customer Information</span>
-                        </Card.Header>
-                        <Card.Body>
-                          <p><strong>Name:</strong> {selectedOrder.name}</p>
-                          <p><strong>Email:</strong> {selectedOrder.email}</p>
-                          <p><strong>Phone:</strong> {selectedOrder.phoneNO}</p>
-                        </Card.Body>
-                      </Card>
-                    </div>
-                    <div className="col-md-6">
-                      <Card>
-                        <Card.Header className="d-flex align-items-center">
-                          <FiCalendar className="me-2" />
-                          <span>Order Information</span>
-                        </Card.Header>
-                        <Card.Body>
-                          <p><strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleDateString()}</p>
-                          <p><strong>Status:</strong> 
-                            <Badge bg={getStatusVariant(selectedOrder.deliveryStatus)} className="ms-2">
-                              {selectedOrder.deliveryStatus}
-                            </Badge>
-                          </p>
-                          <p><strong>Total:</strong> ${selectedOrder.totalAmountAfterTax}</p>
-                        </Card.Body>
-                      </Card>
-                    </div>
+        {/* Order Details Modal using React-Bootstrap Modal */}
+        <Modal show={showDetails} onHide={handleCloseDetails} size="lg" centered scrollable>
+          {selectedOrder && (
+            <>
+              <Modal.Header closeButton>
+                <Modal.Title>Order Details - {selectedOrder.orderID}</Modal.Title>
+              </Modal.Header>
+              <Modal.Body>
+                <div className="row mb-4">
+                  <div className="col-md-6">
+                    <Card>
+                      <Card.Header className="d-flex align-items-center">
+                        <FiUser className="me-2" />
+                        <span>Customer Information</span>
+                      </Card.Header>
+                      <Card.Body>
+                        <p><strong>Name:</strong> {selectedOrder.name}</p>
+                        <p><strong>Email:</strong> {selectedOrder.email}</p>
+                        <p><strong>Phone:</strong> {selectedOrder.phoneNO}</p>
+                      </Card.Body>
+                    </Card>
                   </div>
+                  <div className="col-md-6">
+                    <Card>
+                      <Card.Header className="d-flex align-items-center">
+                        <FiCalendar className="me-2" />
+                        <span>Order Information</span>
+                      </Card.Header>
+                      <Card.Body>
+                        <p><strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleDateString()}</p>
+                        <p><strong>Status:</strong> 
+                          <Badge bg={getStatusVariant(selectedOrder.deliveryStatus)} className="ms-2">
+                            {selectedOrder.deliveryStatus}
+                          </Badge>
+                        </p>
+                        <p><strong>Total:</strong> ${selectedOrder.totalAmountAfterTax}</p>
+                      </Card.Body>
+                    </Card>
+                  </div>
+                </div>
 
-                  <Card className="mb-4">
-                    <Card.Header className="d-flex align-items-center">
-                      <FiPackage className="me-2" />
-                      <span>Order Items</span>
-                    </Card.Header>
-                    <Card.Body>
-                      <Table striped bordered hover>
-                        <thead>
-                          <tr>
-                            <th>Product</th>
-                            <th>Price</th>
-                            <th>Size</th>
-                            <th>Color</th>
-                            <th>Quantity</th>
-                            <th>Subtotal</th>
+                <Card className="mb-4">
+                  <Card.Header className="d-flex align-items-center">
+                    <FiPackage className="me-2" />
+                    <span>Order Items</span>
+                  </Card.Header>
+                  <Card.Body>
+                    <Table striped bordered hover>
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Price</th>
+                          <th>Size</th>
+                          <th>Color</th>
+                          <th>Quantity</th>
+                          <th>Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedOrder.items.map(item => (
+                          <tr key={item._id}>
+                            <td>{item.title}</td>
+                            <td>${item.price}</td>
+                            <td>{item.size}</td>
+                            <td>{item.color}</td>
+                            <td>{item.quantity}</td>
+                            <td>${(item.price * item.quantity).toFixed(2)}</td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {selectedOrder.items.map(item => (
-                            <tr key={item._id}>
-                              <td>{item.title}</td>
-                              <td>${item.price}</td>
-                              <td>{item.size}</td>
-                              <td>{item.color}</td>
-                              <td>{item.quantity}</td>
-                              <td>${(item.price * item.quantity).toFixed(2)}</td>
-                            </tr>
-                          ))}
-                          <tr>
-                            <td colSpan="5" className="text-end"><strong>Total:</strong></td>
-                            <td><strong>${selectedOrder.totalAmountAfterTax}</strong></td>
-                          </tr>
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-                </div>
-                <div className="modal-footer">
-                  <Button variant="secondary" onClick={handleCloseDetails}>
-                    Close
+                        ))}
+                        <tr>
+                          <td colSpan="5" className="text-end"><strong>Total:</strong></td>
+                          <td><strong>${selectedOrder.totalAmountAfterTax}</strong></td>
+                        </tr>
+                      </tbody>
+                    </Table>
+                  </Card.Body>
+                </Card>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onClick={handleCloseDetails}>
+                  Close
+                </Button>
+                {selectedOrder.deliveryStatus === 'Processing' && (
+                  <Button variant="success" onClick={() => {
+                    handleUpdateStatus(selectedOrder.orderID, 'Shipped');
+                    handleCloseDetails();
+                  }}>
+                    <FiTruck className="me-1" /> Mark as Shipped
                   </Button>
-                  {selectedOrder.deliveryStatus === 'Processing' && (
-                    <Button variant="success" onClick={() => {
-                      handleUpdateStatus(selectedOrder.orderID, 'Shipped');
-                      handleCloseDetails();
-                    }}>
-                      <FiTruck className="me-1" /> Mark as Shipped
-                    </Button>
-                  )}
-                  {selectedOrder.deliveryStatus === 'Shipped' && (
-                    <Button variant="info" onClick={() => {
-                      handleUpdateStatus(selectedOrder.orderID, 'Completed');
-                      handleCloseDetails();
-                    }}>
-                      <FiCheckCircle className="me-1" /> Mark as Completed
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+                )}
+                {selectedOrder.deliveryStatus === 'Shipped' && (
+                  <Button variant="info" onClick={() => {
+                    handleUpdateStatus(selectedOrder.orderID, 'Completed');
+                    handleCloseDetails();
+                  }}>
+                    <FiCheckCircle className="me-1" /> Mark as Completed
+                  </Button>
+                )}
+              </Modal.Footer>
+            </>
+          )}
+        </Modal>
       </div>
     </>
   );

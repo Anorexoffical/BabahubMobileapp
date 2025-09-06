@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, Text, View, Image, TouchableOpacity, Animated, Dimensions, Alert } from 'react-native';
+import { StyleSheet, ScrollView, Text, View, Image, TouchableOpacity, Dimensions, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,12 +12,11 @@ const ProductDetailPage = () => {
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const [quantity, setQuantity] = useState(1);
-  const [scaleValue] = useState(new Animated.Value(1));
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -48,20 +47,6 @@ const ProductDetailPage = () => {
     );
   }
 
-  const animatePress = () => {
-    Animated.spring(scaleValue, {
-      toValue: 0.95,
-      friction: 3,
-      useNativeDriver: true
-    }).start(() => {
-      Animated.spring(scaleValue, {
-        toValue: 1,
-        friction: 3,
-        useNativeDriver: true
-      }).start();
-    });
-  };
-
   const colors = product.variants.map(v => v.colorCode);
   const sizes = product.variants[selectedColorIndex]?.sizes || [];
 
@@ -70,8 +55,6 @@ const ProductDetailPage = () => {
   const stock = selectedSizeObj.stock;
 
   const handleAddToCart = async () => {
-    animatePress();
-
     const selectedVariant = product.variants[selectedColorIndex];
     const sizeObj = selectedVariant.sizes[selectedSizeIndex];
 
@@ -89,46 +72,78 @@ const ProductDetailPage = () => {
       const storedCart = await AsyncStorage.getItem('cart');
       const cart = storedCart ? JSON.parse(storedCart) : [];
 
-      const existingIndex = cart.findIndex(
-        item => item.id === newItem.id && item.color === newItem.color && item.size === newItem.size
+      // Check if this exact variant already exists in cart
+      const existingItemIndex = cart.findIndex(
+        item => item.id === newItem.id && 
+               item.color === newItem.color && 
+               item.size === newItem.size
       );
 
-      if (existingIndex >= 0) {
-        cart[existingIndex].quantity += newItem.quantity;
+      if (existingItemIndex >= 0) {
+        // If item exists, just update the quantity (no limit for same item)
+        cart[existingItemIndex].quantity += newItem.quantity;
       } else {
+        // Check if adding a new product would exceed the 4 unique product limit
         if (cart.length >= 4) {
-          Alert.alert('Limit Reached', 'You can only add up to 4 unique products.');
+          setShowLimitModal(true);
           return;
         }
         cart.push(newItem);
       }
 
       await AsyncStorage.setItem('cart', JSON.stringify(cart));
+      
+      // Reset quantity to 1
+      setQuantity(1);
+      
+      // Navigate to cart screen
       router.push('/CartScreen');
     } catch (error) {
       console.error('Error adding to cart:', error);
-      Alert.alert('Error', 'Failed to add item to cart.');
     }
   };
 
   const handleIncrement = () => {
-    animatePress();
-    setQuantity(prev => prev + 1);
+    if (quantity < stock) {
+      setQuantity(prev => prev + 1);
+    }
   };
 
   const handleDecrement = () => {
     if (quantity > 1) {
-      animatePress();
       setQuantity(prev => prev - 1);
     }
   };
 
   return (
     <View style={styles.container}>
+      {/* Limit Modal */}
+      <Modal
+        visible={showLimitModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLimitModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Ionicons name="alert-circle" size={50} color="#FF3E3E" />
+            <Text style={styles.modalTitle}>Limit Reached</Text>
+            <Text style={styles.modalText}>
+              You can only add up to 4 different products to your cart.
+            </Text>
+            <TouchableOpacity 
+              style={styles.modalButton}
+              onPress={() => setShowLimitModal(false)}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Product Image */}
         <View style={styles.imageContainer}>
-
           {product.image ? (
             <Image
               source={{ uri: `http://localhost:3001${product.image}` }}
@@ -144,17 +159,6 @@ const ProductDetailPage = () => {
             onPress={() => router.canGoBack?.() ? router.back() : router.replace('/')}
           >
             <Ionicons name="arrow-back" size={24} color="black" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={() => setIsFavorite(!isFavorite)}
-          >
-            <Ionicons 
-              name={isFavorite ? "heart" : "heart-outline"} 
-              size={24} 
-              color={isFavorite ? "#FF3E3E" : "#333"} 
-            />
           </TouchableOpacity>
         </View>
 
@@ -238,11 +242,15 @@ const ProductDetailPage = () => {
               >
                 <Ionicons name="remove" size={22} color={quantity <= 1 ? "#999" : "#fff"} />
               </TouchableOpacity>
-              <Animated.View style={[styles.quantityDisplay, { transform: [{ scale: scaleValue }] }]}>
+              <View style={styles.quantityDisplay}>
                 <Text style={styles.quantityText}>{quantity}</Text>
-              </Animated.View>
-              <TouchableOpacity onPress={handleIncrement} style={styles.quantityButton}>
-                <Ionicons name="add" size={22} color="#fff" />
+              </View>
+              <TouchableOpacity 
+                onPress={handleIncrement} 
+                disabled={quantity >= stock}
+                style={[styles.quantityButton, quantity >= stock && styles.disabledQuantityButton]}
+              >
+                <Ionicons name="add" size={22} color={quantity >= stock ? "#999" : "#fff"} />
               </TouchableOpacity>
             </View>
           </View>
@@ -268,7 +276,54 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#fff',
-    position: 'relative'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 25,
+    alignItems: 'center',
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 15,
+    marginBottom: 10,
+    color: '#333',
+  },
+  modalText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#666',
+    lineHeight: 22,
+  },
+  modalButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   imageContainer: {
     position: 'relative',
@@ -276,11 +331,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
     marginBottom: 10,
     height: width * 0.9,
   },
@@ -303,29 +353,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 8,
     zIndex: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 20,
-    padding: 8,
-    zIndex: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
   },
   contentContainer: { 
     padding: 25,
-    paddingBottom: 100 // Extra padding for the fixed button
+    paddingBottom: 100
   },
   header: {
     marginBottom: 15,
@@ -344,8 +375,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   priceContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
     marginBottom: 15,
   },
   price: { 
@@ -430,7 +459,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 15,
     paddingHorizontal: 5,
   },
   quantityLabel: { 
@@ -444,13 +473,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f5f5f5',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '##e0e0e0',
   },
   quantityButton: {
     width: 50,
@@ -485,11 +509,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
   },
   disabledButton: {
     backgroundColor: '#ccc',

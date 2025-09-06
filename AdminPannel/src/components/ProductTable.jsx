@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
   FiSearch,
-  FiPlus,
+  FiPlus, // Added FiPlus import
   FiChevronLeft,
   FiChevronRight,
   FiMoreHorizontal,
   FiEdit
 } from 'react-icons/fi';
 import { Modal, Button, Table, Badge, Alert } from 'react-bootstrap';
-import AddProduct from './AddProduct.jsx'; // Changed import name
+import AddProduct from './AddProduct.jsx';
+import EditProduct from './EditProduct.jsx';
 import '../Style/ProductTable.css';
 import Topbar from './Topbar.jsx';
 import axios from 'axios';
@@ -18,6 +19,7 @@ const ProductTable = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,7 +27,6 @@ const ProductTable = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [stockFilter, setStockFilter] = useState('all');
   const [editingProduct, setEditingProduct] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -67,9 +68,8 @@ const ProductTable = () => {
     try {
       const res = await axios.put(`http://localhost:3001/api/products/${editingProduct._id}`, product);
       setProducts(products.map(p => p._id === editingProduct._id ? res.data : p));
-      setShowAddModal(false);
+      setShowEditModal(false);
       setEditingProduct(null);
-      setIsEditing(false);
       setSuccessMessage(`Product "${res.data.name}" updated successfully!`);
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
@@ -128,13 +128,15 @@ const ProductTable = () => {
 
   const openEditModal = (product) => {
     setEditingProduct(product);
-    setIsEditing(true);
-    setShowAddModal(true);
+    setShowEditModal(true);
   };
 
-  const handleModalClose = () => {
+  const handleAddModalClose = () => {
     setShowAddModal(false);
-    setIsEditing(false);
+  };
+
+  const handleEditModalClose = () => {
+    setShowEditModal(false);
     setEditingProduct(null);
   };
 
@@ -152,13 +154,20 @@ const ProductTable = () => {
         {/* Add Product Modal */}
         <AddProduct
           show={showAddModal}
-          onHide={handleModalClose}
+          onHide={handleAddModalClose}
           onAddProduct={handleAddProduct}
+          isSubmitting={isSubmitting}
+          setIsSubmitting={setIsSubmitting}
+        />
+
+        {/* Edit Product Modal */}
+        <EditProduct
+          show={showEditModal}
+          onHide={handleEditModalClose}
           onUpdateProduct={handleUpdateProduct}
           isSubmitting={isSubmitting}
           setIsSubmitting={setIsSubmitting}
           editingProduct={editingProduct}
-          isEditing={isEditing}
         />
 
         <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" centered>
@@ -263,11 +272,7 @@ const ProductTable = () => {
                 
                 <Button 
                   variant="primary" 
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditingProduct(null);
-                    setShowAddModal(true);
-                  }} 
+                  onClick={() => setShowAddModal(true)} 
                   className="add-product-btn"
                 >
                   <FiPlus className="me-1" /> Add Product
@@ -406,11 +411,7 @@ const ProductTable = () => {
                             <FiSearch size={48} className="text-muted mb-3" />
                             <h5>No products found</h5>
                             <p className="text-muted">Try adjusting your search or add a new product</p>
-                            <Button variant="primary" onClick={() => {
-                              setIsEditing(false);
-                              setEditingProduct(null);
-                              setShowAddModal(true);
-                            }}>
+                            <Button variant="primary" onClick={() => setShowAddModal(true)}>
                               <FiPlus className="me-1" /> Add Product
                             </Button>
                           </div>

@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiTrash2, FiStar, FiImage, FiDollarSign, FiUpload, FiSave } from 'react-icons/fi';
+import { FiSave, FiTrash2, FiStar, FiImage, FiDollarSign, FiUpload, FiPlus } from 'react-icons/fi'; // Added FiPlus import
 import { Modal, Button, Spinner, Form, Row, Col, Alert, Badge } from 'react-bootstrap';
 import axios from 'axios';
 
-const AddProduct = ({ 
+const EditProduct = ({ 
   show, 
   onHide, 
-  onAddProduct, 
+  onUpdateProduct, 
   isSubmitting,
-  setIsSubmitting
+  setIsSubmitting,
+  editingProduct
 }) => {
-  const [newProduct, setNewProduct] = useState({
+  const [updatedProduct, setUpdatedProduct] = useState({
     name: '',
     description: '',
     brand: '',
@@ -28,23 +29,29 @@ const AddProduct = ({
   const [successMessage, setSuccessMessage] = useState('');
   const [imagePreview, setImagePreview] = useState('');
 
-  // Reset form when modal is opened/closed
+  // Set form data when editingProduct changes
   useEffect(() => {
-    if (!show) {
-      resetForm();
+    if (editingProduct) {
+      setUpdatedProduct({
+        ...editingProduct,
+        mainImage: null
+      });
+      
+      if (editingProduct.image) {
+        setImagePreview(editingProduct.image);
+      }
     }
-  }, [show]);
+  }, [editingProduct]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewProduct({ ...newProduct, [name]: value });
+    setUpdatedProduct({ ...updatedProduct, [name]: value });
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setNewProduct({ ...newProduct, mainImage: file });
+    setUpdatedProduct({ ...updatedProduct, mainImage: file });
     
-    // Create preview for new image
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -55,26 +62,26 @@ const AddProduct = ({
   };
 
   const handleToggleFeatured = () => {
-    setNewProduct(prev => ({ ...prev, isFeatured: !prev.isFeatured }));
+    setUpdatedProduct(prev => ({ ...prev, isFeatured: !prev.isFeatured }));
   };
 
   const handleVariantChange = (index, field, value) => {
-    const updatedVariants = [...newProduct.variants];
+    const updatedVariants = [...updatedProduct.variants];
     updatedVariants[index][field] = value;
-    setNewProduct({ ...newProduct, variants: updatedVariants });
+    setUpdatedProduct({ ...updatedProduct, variants: updatedVariants });
   };
 
   const handleSizeChange = (variantIndex, sizeIndex, field, value) => {
-    const updatedVariants = [...newProduct.variants];
+    const updatedVariants = [...updatedProduct.variants];
     updatedVariants[variantIndex].sizes[sizeIndex][field] = value;
-    setNewProduct({ ...newProduct, variants: updatedVariants });
+    setUpdatedProduct({ ...updatedProduct, variants: updatedVariants });
   };
 
   const addVariant = () => {
-    setNewProduct({
-      ...newProduct,
+    setUpdatedProduct({
+      ...updatedProduct,
       variants: [
-        ...newProduct.variants,
+        ...updatedProduct.variants,
         {
           color: '',
           colorCode: '#6c757d',
@@ -85,21 +92,21 @@ const AddProduct = ({
   };
 
   const addSize = (variantIndex) => {
-    const updatedVariants = [...newProduct.variants];
+    const updatedVariants = [...updatedProduct.variants];
     updatedVariants[variantIndex].sizes.push({ size: '', stock: 0, price: 0 });
-    setNewProduct({ ...newProduct, variants: updatedVariants });
+    setUpdatedProduct({ ...updatedProduct, variants: updatedVariants });
   };
 
   const removeVariant = (index) => {
-    const updatedVariants = [...newProduct.variants];
+    const updatedVariants = [...updatedProduct.variants];
     updatedVariants.splice(index, 1);
-    setNewProduct({ ...newProduct, variants: updatedVariants });
+    setUpdatedProduct({ ...updatedProduct, variants: updatedVariants });
   };
 
   const removeSize = (variantIndex, sizeIndex) => {
-    const updatedVariants = [...newProduct.variants];
+    const updatedVariants = [...updatedProduct.variants];
     updatedVariants[variantIndex].sizes.splice(sizeIndex, 1);
-    setNewProduct({ ...newProduct, variants: updatedVariants });
+    setUpdatedProduct({ ...updatedProduct, variants: updatedVariants });
   };
 
   const handleSubmit = async (e) => {
@@ -108,62 +115,41 @@ const AddProduct = ({
 
     try {
       const formData = new FormData();
-      formData.append('name', newProduct.name);
-      formData.append('description', newProduct.description);
-      formData.append('brand', newProduct.brand);
-      formData.append('category', newProduct.category);
-      formData.append('isFeatured', newProduct.isFeatured);
+      formData.append('name', updatedProduct.name);
+      formData.append('description', updatedProduct.description);
+      formData.append('brand', updatedProduct.brand);
+      formData.append('category', updatedProduct.category);
+      formData.append('isFeatured', updatedProduct.isFeatured);
       
-      // Only append mainImage if it's a new file
-      if (newProduct.mainImage) {
-        formData.append('mainImage', newProduct.mainImage);
+      if (updatedProduct.mainImage) {
+        formData.append('mainImage', updatedProduct.mainImage);
       }
       
-      formData.append('variants', JSON.stringify(newProduct.variants));
+      formData.append('variants', JSON.stringify(updatedProduct.variants));
 
-      // Add new product
-      const response = await axios.post('http://localhost:3001/api/products', formData, {
+      const response = await axios.put(`http://localhost:3001/api/products/${editingProduct._id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      console.log('Product added:', response.data);
-      setSuccessMessage(`Product "${response.data.name}" saved successfully!`);
-      onAddProduct(response.data);
+      
+      console.log('Product updated:', response.data);
+      setSuccessMessage(`Product "${response.data.name}" updated successfully!`);
+      onUpdateProduct(response.data);
 
       setTimeout(() => {
         setSuccessMessage('');
         onHide();
-        resetForm();
       }, 2000);
     } catch (error) {
-      console.error('Error saving product:', error);
-      alert('Error adding product. Please try again.');
+      console.error('Error updating product:', error);
+      alert('Error updating product. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const resetForm = () => {
-    setNewProduct({
-      name: '',
-      description: '',
-      brand: '',
-      category: '',
-      mainImage: null,
-      isFeatured: false,
-      variants: [{
-        color: '',
-        colorCode: '#6c757d',
-        sizes: [{ size: '', stock: 0, price: 0 }]
-      }]
-    });
-    setImagePreview('');
-  };
-
   const handleModalClose = () => {
     if (!isSubmitting) {
       onHide();
-      resetForm();
     }
   };
 
@@ -172,8 +158,8 @@ const AddProduct = ({
       <Modal.Header closeButton={!isSubmitting} className="bg-white border-bottom-0">
         <Modal.Title className="fw-bold text-primary">
           <span className="d-flex align-items-center gap-2">
-            <FiPlus size={24} />
-            <span>Add New Product</span>
+            <FiSave size={24} />
+            <span>Edit Product</span>
           </span>
         </Modal.Title>
       </Modal.Header>
@@ -203,7 +189,7 @@ const AddProduct = ({
                   <Form.Label className="fw-medium text-muted mb-2">Product Name *</Form.Label>
                   <Form.Control 
                     name="name" 
-                    value={newProduct.name} 
+                    value={updatedProduct.name} 
                     onChange={handleInputChange} 
                     required 
                     placeholder="Enter product name"
@@ -216,7 +202,7 @@ const AddProduct = ({
                   <Form.Label className="fw-medium text-muted mb-2">Brand *</Form.Label>
                   <Form.Control 
                     name="brand" 
-                    value={newProduct.brand} 
+                    value={updatedProduct.brand} 
                     onChange={handleInputChange} 
                     required 
                     placeholder="Enter brand name"
@@ -229,7 +215,7 @@ const AddProduct = ({
                   <Form.Label className="fw-medium text-muted mb-2">Category *</Form.Label>
                   <Form.Control 
                     name="category" 
-                    value={newProduct.category} 
+                    value={updatedProduct.category} 
                     onChange={handleInputChange} 
                     required 
                     placeholder="Enter category"
@@ -242,11 +228,11 @@ const AddProduct = ({
                   type="switch"
                   id="featured-product-switch"
                   label={<span className="fw-medium text-muted">Featured Product</span>}
-                  checked={newProduct.isFeatured}
+                  checked={updatedProduct.isFeatured}
                   onChange={handleToggleFeatured}
                   className="ms-2"
                 />
-                {newProduct.isFeatured && (
+                {updatedProduct.isFeatured && (
                   <Badge bg="warning" className="ms-2 d-flex align-items-center">
                     <FiStar size={14} className="me-1" /> Featured
                   </Badge>
@@ -255,14 +241,16 @@ const AddProduct = ({
               <Col md={12}>
                 <Form.Group>
                   <Form.Label className="fw-medium text-muted mb-2">
-                    Main Product Image *
+                    Main Product Image
+                    {imagePreview && (
+                      <span className="text-muted ms-2 fw-normal">(Leave empty to keep current image)</span>
+                    )}
                   </Form.Label>
                   <div className="border-2 rounded p-3 bg-light">
                     <Form.Control 
                       type="file" 
                       accept="image/*" 
                       onChange={handleFileChange} 
-                      required
                       className="d-none" 
                       id="mainImageUpload"
                     />
@@ -284,7 +272,6 @@ const AddProduct = ({
                         <>
                           <FiUpload size={24} className="mb-2 text-muted" />
                           <span className="text-muted">Click to upload product image</span>
-                          <small className="text-danger mt-1">* Required</small>
                         </>
                       )}
                     </Form.Label>
@@ -298,7 +285,7 @@ const AddProduct = ({
                     as="textarea" 
                     rows={4} 
                     name="description" 
-                    value={newProduct.description} 
+                    value={updatedProduct.description} 
                     onChange={handleInputChange} 
                     placeholder="Enter detailed product description..."
                     className="border-2 py-2 px-3"
@@ -328,9 +315,9 @@ const AddProduct = ({
               </Button>
             </div>
 
-            {newProduct.variants.map((variant, index) => (
+            {updatedProduct.variants.map((variant, index) => (
               <div key={index} className="mb-4 p-4 border rounded position-relative bg-white shadow-sm">
-                {newProduct.variants.length > 1 && (
+                {updatedProduct.variants.length > 1 && (
                   <Button
                     variant="outline-danger"
                     size="sm"
@@ -493,12 +480,12 @@ const AddProduct = ({
               {isSubmitting ? (
                 <>
                   <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
-                  Saving Product...
+                  Updating Product...
                 </>
               ) : (
                 <>
-                  <FiPlus className="me-2" />
-                  Save Product
+                  <FiSave className="me-2" />
+                  Update Product
                 </>
               )}
             </Button>
@@ -509,4 +496,4 @@ const AddProduct = ({
   );
 };
 
-export default AddProduct;
+export default EditProduct;
