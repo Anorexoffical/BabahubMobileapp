@@ -41,21 +41,52 @@ router.post('/', upload.single('mainImage'), async (req, res) => {
 });
 
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', upload.single('mainImage'), async (req, res) => {
   try {
+    const { name, description, brand, category, isFeatured, variants } = req.body;
+
+    // Handle variants safely
+    let parsedVariants = variants;
+    if (typeof variants === 'string') {
+      try {
+        parsedVariants = JSON.parse(variants);
+      } catch (e) {
+        return res.status(400).json({ error: "Invalid JSON format for variants" });
+      }
+    }
+
+    const updateData = {
+      name,
+      description,
+      brand,
+      category,
+      isFeatured: isFeatured === 'true' || isFeatured === true,
+      variants: parsedVariants
+    };
+
+    // If a new image is uploaded, update it
+    if (req.file) {
+      updateData.image = `/uploads/products/${req.file.filename}`;
+    }
+
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true }
     );
+
     if (!updatedProduct) {
       return res.status(404).json({ message: 'Product not found' });
     }
+
     res.json(updatedProduct);
   } catch (err) {
+    console.error("Error updating product:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 
 router.get('/', async (req, res) => {

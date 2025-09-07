@@ -59,7 +59,7 @@ const Login = ({ onLogin }) => {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:3001/api/users/login", {
+      const response = await axios.post("/api/users/login", {
         email: formData.userName,   
         password: formData.password,
         role: "admin"
