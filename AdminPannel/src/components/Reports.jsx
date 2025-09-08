@@ -33,7 +33,7 @@ function Reports() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `/api/order/searchByDate?fromDate=${fromDate}&toDate=${toDate}&status=${status}`
+        `https://account.babahub.co/api/order/searchByDate?fromDate=${fromDate}&toDate=${toDate}&status=${status}`
       );
 
       const data = response.data;

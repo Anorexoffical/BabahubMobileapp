@@ -35,7 +35,7 @@ const Orders = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/order/get');
+      const res = await axios.get('https://account.babahub.co/api/order/get');
       setOrders(res.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -76,7 +76,7 @@ const Orders = () => {
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
-      const response = await axios.put(`/api/order/update-status/${orderId}`, {
+      const response = await axios.put(`https://account.babahub.co/api/order/update-status/${orderId}`, {
         status: newStatus
       });
       

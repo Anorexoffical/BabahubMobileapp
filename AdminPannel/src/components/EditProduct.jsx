@@ -127,7 +127,7 @@ const EditProduct = ({
       
       formData.append('variants', JSON.stringify(updatedProduct.variants));
 
-      const response = await axios.put(`/api/products/${editingProduct._id}`, formData, {
+      const response = await axios.put(`https://account.babahub.co/api/products/${editingProduct._id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       

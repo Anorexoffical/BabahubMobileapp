@@ -122,7 +122,7 @@ const AddProduct = ({
       formData.append('variants', JSON.stringify(newProduct.variants));
 
       // Add new product
-      const response = await axios.post('/api/products', formData, {
+      const response = await axios.post('https://account.babahub.co/api/products', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
