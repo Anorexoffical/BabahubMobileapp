@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Topbar from './components/Topbar';
 import ProductTable from './components/ProductTable';
@@ -15,26 +15,41 @@ import "./Style/Login.css";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // Protected Route component
+  // Restore login from localStorage
+  useEffect(() => {
+    const savedUserName = localStorage.getItem('userName');
+    if (savedUserName) {
+      setIsAuthenticated(true);
+      setUserName(savedUserName);
+    }
+    setLoading(false);
+  }, []);
+
   const ProtectedRoute = ({ children }) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !loading) {
       return <Navigate to="/login" replace />;
     }
     return children;
   };
 
-  // Login handler to set authentication state
   const handleLogin = (name) => {
     setIsAuthenticated(true);
     setUserName(name);
+    localStorage.setItem('userName', name);
   };
 
-  // Logout handler
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserName('');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userData');
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Router>
@@ -44,9 +59,7 @@ function App() {
           <Route 
             path="/login" 
             element={
-              isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
-              <Login onLogin={handleLogin} />
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
             } 
           />
           <Route 
@@ -57,46 +70,11 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/products" 
-            element={
-              <ProtectedRoute>
-                <ProductTable />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/customers" 
-            element={
-              <ProtectedRoute>
-                <CustomerRecords />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/orders" 
-            element={
-              <ProtectedRoute>
-                <Orders />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/reports" 
-            element={
-              <ProtectedRoute>
-                <Reports />
-              </ProtectedRoute>
-            } 
-          />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/products" element={<ProtectedRoute><ProductTable /></ProtectedRoute>} />
+          <Route path="/customers" element={<ProtectedRoute><CustomerRecords /></ProtectedRoute>} />
+          <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
