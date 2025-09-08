@@ -25,12 +25,7 @@ router.post("/payfast/initiate-payment", async (req, res) => {
     const cancel_url = "https://f204f8e09b51.ngrok-free.app/payment/payfast/cancel";
     const notify_url = "https://f204f8e09b51.ngrok-free.app/payment/payfast/notifyurl";
     // const notify_url = "https://3a31-103-137-24-132.ngrok-free.app/payfast/notifyurl";
-// wisal
 
-https://f204f8e09b51.ngrok-free.app
-
-// umair 
-    //https://11b70a81954f.ngrok-free.app 
     console.log(items);
     
     const paymentData = {
