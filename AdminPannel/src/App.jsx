@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Topbar from './components/Topbar';
 import ProductTable from './components/ProductTable';
@@ -15,21 +15,10 @@ import "./Style/Login.css";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  // Check if user is already logged in on component mount
-  useEffect(() => {
-    const savedUserName = localStorage.getItem('userName');
-    if (savedUserName) {
-      setIsAuthenticated(true);
-      setUserName(savedUserName);
-    }
-    setLoading(false);
-  }, []);
 
   // Protected Route component
   const ProtectedRoute = ({ children }) => {
-    if (!isAuthenticated && !loading) {
+    if (!isAuthenticated) {
       return <Navigate to="/login" replace />;
     }
     return children;
@@ -39,26 +28,13 @@ function App() {
   const handleLogin = (name) => {
     setIsAuthenticated(true);
     setUserName(name);
-    localStorage.setItem('userName', name);
   };
 
   // Logout handler
   const handleLogout = () => {
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userData');
     setIsAuthenticated(false);
     setUserName('');
   };
-
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center min-vh-100">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Router>
