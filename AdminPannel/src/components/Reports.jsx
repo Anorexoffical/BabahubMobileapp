@@ -33,7 +33,7 @@ function Reports() {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:3001/api/order/searchByDate?fromDate=${fromDate}&toDate=${toDate}&status=${status}`
+        `/api/order/searchByDate?fromDate=${fromDate}&toDate=${toDate}&status=${status}`
       );
 
       const data = response.data;

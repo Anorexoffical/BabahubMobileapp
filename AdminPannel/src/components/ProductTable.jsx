@@ -40,7 +40,7 @@ const ProductTable = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/products');
+      const res = await axios.get('/api/products');
       setProducts(res.data);
     } catch (err) {
       console.error('Failed to fetch products:', err);
@@ -52,7 +52,7 @@ const ProductTable = () => {
   const handleAddProduct = async (product) => {
     setIsSubmitting(true);
     try {
-      const res = await axios.post('http://localhost:3001/api/products', product);
+      const res = await axios.post('/api/products', product);
       setProducts([...products, res.data]);
       setShowAddModal(false);
       setSuccessMessage(`Product "${res.data.name}" added successfully!`);
@@ -66,7 +66,7 @@ const ProductTable = () => {
   const handleUpdateProduct = async (product) => {
     setIsSubmitting(true);
     try {
-      const res = await axios.put(`http://localhost:3001/api/products/${editingProduct._id}`, product);
+      const res = await axios.put(`/api/products/${editingProduct._id}`, product);
       setProducts(products.map(p => p._id === editingProduct._id ? res.data : p));
       setShowEditModal(false);
       setEditingProduct(null);
