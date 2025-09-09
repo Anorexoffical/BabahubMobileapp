@@ -1,19 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Topbar from './components/Topbar';
-import ProductTable from './components/ProductTable';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
-import CustomerRecords from './components/CustomerRecords';
-import Dashboard from './components/Dashboard';
-import Reports from './components/Reports';
-import NotFound from './components/NotFound';
-import Orders from './components/Orders';
-import Login from './components/Login';
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Topbar from "./components/Topbar";
+import ProductTable from "./components/ProductTable";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./App.css";
+import CustomerRecords from "./components/CustomerRecords";
+import Dashboard from "./components/Dashboard";
+import Reports from "./components/Reports";
+import NotFound from "./components/NotFound";
+import Orders from "./components/Orders";
+import Login from "./components/Login";
 
-// Protected Route wrapper
+// ProtectedRoute wrapper
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('userData');
+  const isAuthenticated = localStorage.getItem("userData");
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
@@ -21,7 +21,7 @@ function App() {
   const [userName, setUserName] = useState(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('userName');
+    const storedUser = localStorage.getItem("userName");
     if (storedUser) {
       setUserName(storedUser);
     }
@@ -32,8 +32,8 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userData');
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userData");
     setUserName(null);
     window.location.href = "/login";
   };
@@ -43,10 +43,15 @@ function App() {
       {userName && <Topbar onLogout={handleLogout} userName={userName} />}
       <div className="content-with-topbar">
         <Routes>
-          {/* Public route */}
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          {/* Login Page (public) */}
+          <Route
+            path="/login"
+            element={
+              userName ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
+            }
+          />
 
-          {/* Protected routes */}
+          {/* Secure Routes */}
           <Route
             path="/"
             element={
@@ -96,8 +101,8 @@ function App() {
             }
           />
 
-          {/* Catch-all */}
-          <Route path="*" element={<NotFound />} />
+          {/* Fallback for unknown routes */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
     </Router>
