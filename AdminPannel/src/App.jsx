@@ -1,36 +1,108 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Topbar from './components/Topbar';
-import ProductTable from './components/ProductTable';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
-import CustomerRecords from './components/CustomerRecords';
-import Dashboard from './components/Dashboard';
-import Reports from './components/Reports';
-import NotFound from './components/NotFound';
-import Orders from './components/Orders';
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Topbar from "./components/Topbar";
+import ProductTable from "./components/ProductTable";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./App.css";
+import CustomerRecords from "./components/CustomerRecords";
+import Dashboard from "./components/Dashboard";
+import Reports from "./components/Reports";
+import NotFound from "./components/NotFound";
+import Orders from "./components/Orders";
+import Login from "./components/Login";
+
+// ProtectedRoute wrapper
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem("userData");
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
 
 function App() {
-  // Remove all authentication state and logic
-  const userName = "Demo User"; // Static user name for demonstration
+  const [userName, setUserName] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("userName");
+    if (storedUser) {
+      setUserName(storedUser);
+    }
+  }, []);
+
+  const handleLogin = (name) => {
+    setUserName(name);
+  };
 
   const handleLogout = () => {
-    // Since we removed authentication, this is just for UI consistency
-    alert("Logout functionality would go here");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userData");
+    setUserName(null);
+    window.location.href = "/login";
   };
 
   return (
     <Router>
-      <Topbar onLogout={handleLogout} userName={userName} />
-      <div className='content-with-topbar'>
+      {userName && <Topbar onLogout={handleLogout} userName={userName} />}
+      <div className="content-with-topbar">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/products" element={<ProductTable />} />
-          <Route path="/customers" element={<CustomerRecords />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="*" element={<NotFound />} />
+          {/* Login Page (public) */}
+          <Route
+            path="/login"
+            element={
+              userName ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
+            }
+          />
+
+          {/* Secure Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/products"
+            element={
+              <ProtectedRoute>
+                <ProductTable />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customers"
+            element={
+              <ProtectedRoute>
+                <CustomerRecords />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders"
+            element={
+              <ProtectedRoute>
+                <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fallback for unknown routes */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
     </Router>
