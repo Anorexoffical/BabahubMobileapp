@@ -26,10 +26,10 @@ const UserRoutes = require("./Routes/UserRoute.js");
 
 // app.use('/uploads', express.static('uploads'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/products', productRoutes);
-app.use('/order', orderRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/order', orderRoutes);
 app.use('/payment', notifyRoutes);
-app.use("/users", UserRoutes);
+app.use("/api/users", UserRoutes);
 
 
 
