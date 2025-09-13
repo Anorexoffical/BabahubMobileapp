@@ -21,9 +21,9 @@ router.post("/payfast/initiate-payment", async (req, res) => {
     //for sandbox test
     const merchant_id = "10036171";
     const merchant_key = "731ry9o3bmz2d";
-    const return_url = "https://f204f8e09b51.ngrok-free.app/payment/payfast/success";
-    const cancel_url = "https://f204f8e09b51.ngrok-free.app/payment/payfast/cancel";
-    const notify_url = "https://f204f8e09b51.ngrok-free.app/payment/payfast/notifyurl";
+    const return_url = "https://account.babahub.co/payment/payfast/success";
+    const cancel_url = "https://account.babahub.co/payment/payfast/cancel";
+    const notify_url = "https://account.babahub.co/payment/payfast/notifyurl";
     // const notify_url = "https://3a31-103-137-24-132.ngrok-free.app/payfast/notifyurl";
 
     console.log(items);

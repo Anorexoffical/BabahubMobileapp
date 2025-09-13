@@ -113,28 +113,19 @@ const AddProduct = ({
       formData.append('brand', newProduct.brand);
       formData.append('category', newProduct.category);
       formData.append('isFeatured', newProduct.isFeatured);
-      
-      // Only append mainImage if it's a new file
+
+      // Use 'image' as the field name to match backend expectations
       if (newProduct.mainImage) {
-        formData.append('mainImage', newProduct.mainImage);
+        formData.append('image', newProduct.mainImage);
       }
-      
+
       formData.append('variants', JSON.stringify(newProduct.variants));
 
-      // Add new product
-      const response = await axios.post('https://account.babahub.co/api/products', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Pass formData to parent handler instead of axios here
+      await onAddProduct(formData);
 
-      console.log('Product added:', response.data);
-      setSuccessMessage(`Product "${response.data.name}" saved successfully!`);
-      onAddProduct(response.data);
-
-      setTimeout(() => {
-        setSuccessMessage('');
-        onHide();
-        resetForm();
-      }, 2000);
+      resetForm();
+      onHide();
     } catch (error) {
       console.error('Error saving product:', error);
       alert('Error adding product. Please try again.');

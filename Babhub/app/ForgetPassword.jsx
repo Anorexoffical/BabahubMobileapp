@@ -1,4 +1,4 @@
-// app/ForgetPassword.jsx
+// app/ForgetPassword.jsx (updated with secure flow)
 import {
   View,
   Text,
@@ -11,17 +11,18 @@ import {
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import Mybutton from '../components/Mybutton';
+import { useAuth } from './contexts/AuthContext';
 
 const ForgetPassword = () => {
   const router = useRouter();
+  const { setPasswordRecoveryData } = useAuth();
   const [email, setEmail] = useState('');
   const [dob, setDob] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [emailFocus, setEmailFocus] = useState(false);
   const [dobFocus, setDobFocus] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRecoverPassword = () => {
+  const handleRecoverPassword = async () => {
     // Simple validation
     if (!email || !dob) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -41,11 +42,30 @@ const ForgetPassword = () => {
       return;
     }
 
-    // In a real app, you would call your API here
-    // For demo purposes, we'll generate a mock password
-    const recoveredPassword = 'Recovered@123';
-    setPassword(recoveredPassword);
-    setShowPassword(true);
+    setIsLoading(true);
+    
+    try {
+      // In a real app, you would verify credentials with your backend
+      // For demo purposes, we'll simulate an API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Simulate checking if credentials match (in real app, this would be API call)
+      // For demo, we'll assume they're correct
+      const recoveredPassword = 'Recovered@123';
+      
+      // Generate secure recovery token and store data
+      const token = setPasswordRecoveryData(email, dob, recoveredPassword);
+      
+      // Navigate to the review page with token as parameter
+      router.push({
+        pathname: '/PasswordReview',
+        params: { token }
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to recover password. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
@@ -71,6 +91,7 @@ const ForgetPassword = () => {
         underlineColorAndroid="transparent"
         selectionColor="#3366FF"
         autoCapitalize="none"
+        editable={!isLoading}
       />
 
       <Text style={styles.label}>Date of Birth</Text>
@@ -83,24 +104,17 @@ const ForgetPassword = () => {
         onBlur={() => setDobFocus(false)}
         underlineColorAndroid="transparent"
         selectionColor="#3366FF"
+        editable={!isLoading}
       />
 
-      <Mybutton btntitle="Recover Password" onPress={handleRecoverPassword} />
+      <Mybutton 
+        btntitle={isLoading ? "Verifying..." : "Recover Password"} 
+        onPress={handleRecoverPassword}
+        disabled={isLoading}
+      />
 
-      {showPassword && (
-        <View style={styles.passwordContainer}>
-          <Text style={styles.passwordLabel}>Your Password:</Text>
-          <View style={styles.passwordDisplay}>
-            <Text style={styles.passwordText}>{password}</Text>
-          </View>
-          <Text style={styles.note}>
-            Please change your password after logging in for security reasons.
-          </Text>
-        </View>
-      )}
-
-      <TouchableOpacity onPress={handleBackToLogin}>
-        <Text style={styles.backToLogin}>Back to Login</Text>
+      <TouchableOpacity onPress={handleBackToLogin} disabled={isLoading}>
+        <Text style={[styles.backToLogin, isLoading && styles.disabledText]}>Back to Login</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -145,45 +159,15 @@ const styles = StyleSheet.create({
   inputActive: {
     borderColor: '#3366FF',
   },
-  passwordContainer: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  passwordLabel: {
-    fontWeight: '600',
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 10,
-  },
-  passwordDisplay: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#dee2e6',
-    marginBottom: 10,
-  },
-  passwordText: {
-    fontSize: 16,
-    color: '#28a745',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  note: {
-    fontSize: 14,
-    color: '#6c757d',
-    fontStyle: 'italic',
-  },
   backToLogin: {
     color: '#3366FF',
     textAlign: 'center',
     marginTop: 30,
     fontWeight: '600',
     fontSize: 14,
+  },
+  disabledText: {
+    opacity: 0.5,
   },
 });
 

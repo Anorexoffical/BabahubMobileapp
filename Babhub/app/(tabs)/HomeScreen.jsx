@@ -70,7 +70,7 @@ const ProductItem = ({ item, onPress, onWishlistToggle, isInWishlist }) => {
     >
       <View style={styles.imageContainer}>
         <Image 
-          source={{ uri: `http://localhost:3001${item.image}` }} 
+          source={{ uri: `https://account.babahub.co/images/products/${item.image}` }} 
           style={styles.image}
           resizeMode="cover" 
           defaultSource={{ uri: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' }}
@@ -80,6 +80,7 @@ const ProductItem = ({ item, onPress, onWishlistToggle, isInWishlist }) => {
           style={styles.heartIcon}
           onPress={(e) => {
             e.stopPropagation();
+
             onWishlistToggle(item);
           }}
         >
@@ -161,7 +162,7 @@ const HomeScreen = () => {
     const fetchFeaturedProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3001/api/products/featured');
+        const response = await fetch('https://account.babahub.co/api/products/featured');
         const data = await response.json();
         
         // Use the API data directly without modifying the structure
@@ -210,7 +211,7 @@ const HomeScreen = () => {
         id: product._id,
         title: product.name,
         brand: product.brand,
-        image: `http://localhost:3001${product.image}`,
+        image: `https://account.babahub.co${product.image}`,
         price: price
       };
 

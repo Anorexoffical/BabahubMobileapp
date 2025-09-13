@@ -20,7 +20,7 @@ const ProductDetailPage = () => {
 
   useEffect(() => {
     if (id) {
-      fetch(`http://localhost:3001/api/products/${id}`)
+      fetch(`https://account.babahub.co/api/products/${id}`)
         .then(res => res.json())
         .then(data => {
           setProduct(data);
@@ -146,7 +146,7 @@ const ProductDetailPage = () => {
         <View style={styles.imageContainer}>
           {product.image ? (
             <Image
-              source={{ uri: `http://localhost:3001${product.image}` }}
+              source={{ uri: `https://account.babahub.co${product.image}` }}
               style={styles.productImage}
               resizeMode="contain"
             />

@@ -1,10 +1,18 @@
-// app/components/ProtectedRoute.jsx
-import { useAuth } from '../contexts/AuthContext';
-import { Redirect } from 'expo-router';
+import { useAuth } from './AuthContext';
+import { Redirect, useRouter } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import { useEffect } from 'react';
 
 export default function ProtectedRoute({ children }) {
   const { userToken, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !userToken) {
+      // Use replace instead of redirect to avoid history issues
+      router.replace('/login');
+    }
+  }, [userToken, isLoading]);
 
   if (isLoading) {
     return (
@@ -15,7 +23,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!userToken) {
-    return <Redirect href="/login" />;
+    return null; // Will redirect due to useEffect
   }
 
   return children;

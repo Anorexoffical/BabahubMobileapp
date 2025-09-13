@@ -80,7 +80,7 @@ const Checkout = () => {
     try {
 
       // const response = await fetch("https://icellmobile.co.za/api/payfast/initiate-payment", {
-      const response = await fetch("http://localhost:3001/api/order/payfast/initiate-payment", {
+      const response = await fetch("https://account.babahub.co/api/order/payfast/initiate-payment", {
       // const response = await fetch("https://f3ae168b7043.ngrok-free.app/api/order/payfast/initiate-payment", {
 
         

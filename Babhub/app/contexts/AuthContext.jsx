@@ -4,7 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const AuthContext = createContext();
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -49,6 +53,7 @@ export const AuthProvider = ({ children }) => {
         console.error('Failed to remove auth data', e);
       }
     },
+    isAuthenticated: () => !!userToken,
     userToken,
     user,
     isLoading,

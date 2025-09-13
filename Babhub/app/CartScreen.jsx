@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MAX_UNIQUE_ITEMS = 4;
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = 'https://account.babahub.co';
 
 const CartScreen = () => {
   const router = useRouter();

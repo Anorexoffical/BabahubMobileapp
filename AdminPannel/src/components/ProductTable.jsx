@@ -40,7 +40,7 @@ const ProductTable = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get('https://account.babahub.co/api/products');
+
       setProducts(res.data);
     } catch (err) {
       console.error('Failed to fetch products:', err);
